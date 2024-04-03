@@ -1,0 +1,3 @@
+[submodule "k8s"]
+	path = k8s
+	url = ssh://git@baowlab.sountrust.fr:4322/micsi_a4/k8s.git
