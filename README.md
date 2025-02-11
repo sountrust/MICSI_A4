@@ -205,3 +205,94 @@ To enable reverse proxy capabilities, you will copy the provided `values.yaml` f
 ```sh
 mkdir -p traefik
 cd traefik
+```
+
+### Step 2: Copy the Provided `values.yaml`
+Manually copy and paste the content of the `values.yaml` file provided by the instructor into a new file in your repository:
+
+1. Open the `traefik/values.yaml` file in your instructor GitLab repository.
+2. Copy its entire content.
+3. On your local machine, inside the `traefik` directory, create the file:
+   ```sh
+   nano values.yaml
+   ```
+4. Paste the copied content into the file.
+5. Save and exit (`CTRL + X`, then `Y`, then `Enter`).
+
+### Step 3: Commit and Push the Changes to GitLab
+```sh
+git add traefik/values.yaml
+git commit -m "Added values.yaml for Traefik"
+git push origin main
+```
+
+### Step 4: Deploy Traefik with Helm
+Run the following commands to deploy Traefik in your AKS cluster:
+```sh
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
+helm install traefik traefik/traefik -n default -f traefik/values.yaml
+```
+
+### Step 5: Verify Traefik Deployment
+Check if Traefik is running successfully:
+```sh
+kubectl get pods -n default
+```
+
+Once this is done, your Traefik reverse proxy should be operational.
+
+
+# Setting Up Kubernetes Cluster Components
+
+## Setting Up Cert-Manager for SSL Certificates
+
+Cert-Manager is used to manage TLS certificates automatically within the Kubernetes cluster.
+
+### Step 1: Install Cert-Manager Using kubectl
+Run the following command to install Cert-Manager:
+```sh
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.0/cert-manager.yaml
+```
+This deploys Cert-Manager into your cluster.
+
+### Step 2: Verify Cert-Manager Deployment
+Check if Cert-Manager is running successfully:
+```sh
+kubectl get pods -n cert-manager
+```
+Ensure that all Cert-Manager pods are in the `Running` state before proceeding.
+
+### Step 3: Create a Cluster-Issuer Configuration
+To configure Cert-Manager to issue certificates using ACME (Let's Encrypt), create a new directory for the cluster issuer configuration.
+```sh
+mkdir -p certmanager
+cd certmanager
+```
+
+### Step 4: Copy the Provided `cluster-issuer-acme.yaml`
+Manually copy and paste the content of the `cluster-issuer-acme.yaml` file provided by the instructor into a new file in your repository:
+
+1. Open the `certmanager/cluster-issuer-acme.yaml` file in your GitLab repository.
+2. Copy its entire content.
+3. On your local machine, inside the `certmanager` directory, create the file:
+   ```sh
+   nano cluster-issuer-acme.yaml
+   ```
+4. Paste the copied content into the file.
+5. Save and exit (`CTRL + X`, then `Y`, then `Enter`).
+
+### Step 5: Commit and Push the Changes to GitLab
+```sh
+git add certmanager/cluster-issuer-acme.yaml
+git commit -m "Added cluster-issuer configuration for Cert-Manager"
+git push origin main
+```
+
+### Step 6: Apply the Cluster Issuer Configuration
+```sh
+kubectl apply -f certmanager/cluster-issuer-acme.yaml
+```
+This registers Cert-Manager to issue SSL certificates using Let's Encrypt for your Kubernetes cluster.
+
+Once this is done, Cert-Manager will handle SSL certificate provisioning automatically.
