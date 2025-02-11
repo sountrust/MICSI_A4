@@ -21,6 +21,7 @@
   - **Resource Group**: Choose `myResourceGroup`.
   - **Cluster Name**: `myAKSCluster`
   - **Region**: Same as the resource group.
+  - **Prometheus**: Disable Prometheus metrics
   - **Node Count**: Set to **1** to minimize costs.
   - **Authentication Method**: Use **System-assigned managed identity**.
 - Click **Review + Create**, then **Create**.
