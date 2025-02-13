@@ -297,3 +297,172 @@ kubectl apply -f certmanager/cluster-issuer-acme.yaml
 This registers Cert-Manager to issue SSL certificates using Let's Encrypt for your Kubernetes cluster.
 
 Once this is done, Cert-Manager will handle SSL certificate provisioning automatically.
+# Setting Up Kubernetes GitOps with Flux
+
+## Prerequisites
+Flux requires write access to a Git repository where it will store Kubernetes manifests for deployment automation. You must first generate a personal access token (PAT) for authentication.
+
+### Step 1: Generate a Personal Access Token (PAT)
+#### GitHub:
+1. Go to **GitHub** > **Settings** > **Developer settings** > **Personal access tokens**.
+2. Click **Generate new token**.
+3. Select scopes:
+   - `repo` (Full control of repositories)
+   - `write:packages`
+   - `read:org` (if working with organization repositories)
+4. Click **Generate Token** and copy the generated token.
+
+#### GitLab:
+1. Go to **GitLab** > **User Settings** > **Access Tokens**.
+2. Enter a name for the token.
+3. Select scopes:
+   - `api`
+   - `write_repository`
+4. Click **Create Personal Access Token** and copy the generated token.
+
+### Step 2: Set the Token as an Environment Variable
+For convenience, store the token in an environment variable so Flux can use it without manual entry.
+```sh
+export GIT_AUTH_TOKEN=<your-generated-token>
+```
+Ensure this variable is set in your shell configuration (`~/.bashrc` or `~/.zshrc`) for persistence.
+
+## Bootstrapping Flux with GitHub and GitLab
+Flux needs to be bootstrapped into your Kubernetes cluster to begin monitoring repositories and deploying configurations.
+
+### Step 1: Install Flux CLI
+If not already installed:
+```sh
+curl -s https://fluxcd.io/install.sh | sudo bash
+```
+Verify installation:
+```sh
+flux --version
+```
+
+### Step 2: Bootstrap Flux
+#### GitHub Bootstrap:
+```sh
+flux bootstrap github \
+  --owner=<github-username-or-org> \
+  --repository=<repo-name> \
+  --branch=main \
+  --path=clusters/my-cluster \
+  --personal \
+  --token-auth
+```
+
+#### GitLab Bootstrap:
+```sh
+flux bootstrap gitlab \
+  --owner=<gitlab-username-or-group> \
+  --repository=<repo-name> \
+  --branch=main \
+  --path=clusters/my-cluster \
+  --token-auth
+```
+
+This command sets up Flux in your Kubernetes cluster, linking it to the specified repository, which it will watch for configuration changes.
+
+## Creating a Repository for Application Configurations
+To store and manage application configurations (e.g., OwnCloud), create a separate repository.
+
+### Step 1: Create a Local Repository for App Configurations
+```sh
+mkdir -p flux-apps
+cd flux-apps
+```
+
+### Step 2: Initialize a Git Repository
+```sh
+git init
+```
+
+### Step 3: Create a Folder for OwnCloud Configurations
+```sh
+mkdir owncloud
+cd owncloud
+```
+
+### Step 4: Define the Kubernetes Manifests for OwnCloud
+Inside the `owncloud` directory, create Kubernetes deployment and service manifests.
+
+1. Create a `kustomization.yaml` file:
+   ```yaml
+   resources:
+     - deployment.yaml
+     - service.yaml
+   ```
+
+2. Create a basic `deployment.yaml` file:
+   ```yaml
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+     name: owncloud
+   spec:
+     replicas: 1
+     selector:
+       matchLabels:
+         app: owncloud
+     template:
+       metadata:
+         labels:
+           app: owncloud
+       spec:
+         containers:
+           - name: owncloud
+             image: owncloud:latest
+             ports:
+               - containerPort: 80
+   ```
+
+3. Create a `service.yaml` file:
+   ```yaml
+   apiVersion: v1
+   kind: Service
+   metadata:
+     name: owncloud-service
+   spec:
+     selector:
+       app: owncloud
+     ports:
+       - protocol: TCP
+         port: 80
+         targetPort: 80
+   ```
+
+### Step 5: Commit and Push the Configuration Repository
+```sh
+git add .
+git commit -m "Initial commit with OwnCloud manifests"
+git push origin main
+```
+
+### Step 6: Link the Repository to Flux
+#### GitHub:
+```sh
+flux create source git owncloud \
+  --url=https://github.com/<github-username>/<repo-name>.git \
+  --branch=main \
+  --interval=30s
+```
+
+#### GitLab:
+```sh
+flux create source git owncloud \
+  --url=https://gitlab.com/<gitlab-username>/<repo-name>.git \
+  --branch=main \
+  --interval=30s
+```
+
+### Step 7: Apply the Configuration to the Cluster
+```sh
+flux create kustomization owncloud \
+  --source=owncloud \
+  --path="./owncloud" \
+  --prune=true \
+  --interval=10m
+```
+
+Once this is done, Flux will monitor the `owncloud` directory in the repository and automatically apply any changes to the Kubernetes cluster.
