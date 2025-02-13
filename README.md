@@ -459,6 +459,7 @@ flux create secret git flux-deploy-authentication \
 ```
 
 ## Step 7: Kustomize your flux autodeploy
+#### File location: your-repository/flux/
  ```yaml
  ---
 apiVersion: source.toolkit.fluxcd.io/v1beta2
