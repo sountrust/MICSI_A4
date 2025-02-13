@@ -464,7 +464,7 @@ flux create secret git flux-deploy-authentication \
 apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: GitRepository
 metadata:
-  name: monacocloud-apps 
+  name: flux-apps 
   namespace: flux-system
 spec:
   interval: 1m0s
@@ -472,7 +472,7 @@ spec:
     branch: main
   secretRef:
     name: flux-deploy-authentication
-  url: ssh://git@github.com/GithHelp/kube-deploy
+  url: url-de-votre-repos
 
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
@@ -482,46 +482,11 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1m0s
-  path: ./owncloud-manifests
+  path: ./owncloud
   prune: true
-  dependsOn:
-    - name: helpmanager
   sourceRef:
     kind: GitRepository
-    name: monacocloud-apps
+    name: flux-apps
     namespace: flux-system
 
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
-kind: Kustomization
-metadata:
-  name: seeddms-apps
-  namespace: flux-system
-spec:
-  interval: 1m0s
-  path: ./seeddms-manifests
-  prune: true
-  dependsOn:
-    - name: helpmanager
-  sourceRef:
-    kind: GitRepository
-    name: monacocloud-apps
-    namespace: flux-system
-
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
-kind: Kustomization
-metadata:
-  name: suitecrm-apps
-  namespace: flux-system
-spec:
-  interval: 1m0s
-  path: ./suitecrm-manifests
-  prune: true
-  dependsOn:
-    - name: helpmanager
-  sourceRef:
-    kind: GitRepository
-    name: monacocloud-apps
-    namespace: flux-system
 ```
