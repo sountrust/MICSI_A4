@@ -439,30 +439,89 @@ git commit -m "Initial commit with OwnCloud manifests"
 git push origin main
 ```
 
-### Step 6: Link the Repository to Flux
-#### GitHub:
+### Step 6: Create flux secret 
+#### Gitlab
 ```sh
-flux create source git owncloud \
-  --url=https://github.com/<github-username>/<repo-name>.git \
-  --branch=main \
-  --interval=30s
+flux create secret git flux-deploy-authentication \
+  --url=https://gitlab.com/owner/votre_projet_de_deploiement \
+  --namespace=flux-system \
+  --username="$kube_deploy_user_access" \
+  --password="$kube_deploy_token_access"
 ```
 
-#### GitLab:
+#### Github:
 ```sh
-flux create source git owncloud \
-  --url=https://gitlab.com/<gitlab-username>/<repo-name>.git \
-  --branch=main \
-  --interval=30s
+flux create secret git flux-deploy-authentication \
+  --url=https://github.com/owner/votre_projet_de_deploiement \
+  --namespace=flux-system \
+  --username="$kube_deploy_user_access" \
+  --password="$kube_deploy_token_access"
 ```
 
-### Step 7: Apply the Configuration to the Cluster
-```sh
-flux create kustomization owncloud \
-  --source=owncloud \
-  --path="./owncloud" \
-  --prune=true \
-  --interval=10m
-```
+## Step 7: Kustomize your flux autodeploy
+ ```yaml
+ ---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: GitRepository
+metadata:
+  name: monacocloud-apps 
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  ref:
+    branch: main
+  secretRef:
+    name: flux-deploy-authentication
+  url: ssh://git@github.com/GithHelp/kube-deploy
 
-Once this is done, Flux will monitor the `owncloud` directory in the repository and automatically apply any changes to the Kubernetes cluster.
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: owncloud-apps
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  path: ./owncloud-manifests
+  prune: true
+  dependsOn:
+    - name: helpmanager
+  sourceRef:
+    kind: GitRepository
+    name: monacocloud-apps
+    namespace: flux-system
+
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: seeddms-apps
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  path: ./seeddms-manifests
+  prune: true
+  dependsOn:
+    - name: helpmanager
+  sourceRef:
+    kind: GitRepository
+    name: monacocloud-apps
+    namespace: flux-system
+
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: suitecrm-apps
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  path: ./suitecrm-manifests
+  prune: true
+  dependsOn:
+    - name: helpmanager
+  sourceRef:
+    kind: GitRepository
+    name: monacocloud-apps
+    namespace: flux-system
+```
