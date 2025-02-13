@@ -473,7 +473,7 @@ spec:
     branch: main
   secretRef:
     name: flux-deploy-authentication
-  url: url-de-votre-repos
+  url: https://git-server.com/owner/repos
 
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
