@@ -341,6 +341,329 @@ Quand plusieurs conteneurs doivent coopérer :
 
 ➡️ Apparition des **orchestrateurs** : Docker Swarm, Mesos, **Kubernetes** 🚀
 
+# Orchestration & Kubernetes — "état désiré" et réconciliation
+
+> **Objectif** — Comprendre comment Kubernetes orchestre des applications conteneurisées en appliquant un **modèle déclaratif** ("état désiré") et des **boucles de réconciliation**. Découvrir les **objets clés** (Pod, Deployment, Service, Ingress) et la mécanique d'auto-rétablissement (_self‑healing_).
+
+---
+
+## 🎯 Résultats d'apprentissage
+
+- Expliquer le principe **déclaratif** : on décrit _ce qu'on veut_, pas _comment le faire_.
+- Décrire le cycle **réconciliation → action → observation** dans Kubernetes.
+- Identifier les **composants** : API Server, etcd, Scheduler, Controllers, Kubelet, Runtime.
+- Lire/écrire des **manifestes YAML** pour Pods / Deployments / Services / Ingress.
+- Mettre à l'échelle (scaling) et comprendre l'**auto‑guérison** (remplacement de Pods).
+
+---
+
+## 🧠 Déclaratif vs impératif
+
+- **Impératif** : "exécute ces commandes dans cet ordre" → fragile, non idempotent.
+- **Déclaratif** : "voici **l'état désiré** du système" → le contrôleur converge vers cet état.
+
+> **Parallèle IaC** : Terraform/Ansible décrivent l'infra ; **Kubernetes** décrit l'état applicatif (et réseau/stockage associés) au niveau **service**.
+
+---
+
+## 🔁 Boucle de réconciliation (vue système)
+
+```mermaid
+flowchart LR
+  subgraph User[Développeur]
+    A(Manifeste YAML: état désiré)
+  end
+  A -->|kubectl/apply| B[API Server]
+  B --> C[(etcd\nstocke état désiré)]
+  B --> D[Controllers]
+  D --> E{Compare\nétat réel ?}
+  E -- non --> F[Créer/Remplacer/Scaler Pods]
+  F --> G[Kubelet sur Nodes]
+  G --> H[Containers (containerd/CRI-O)]
+  H --> I[États et événements]
+  I --> D
+  E -- oui --> J[Convergence]
 ```
 
+---
+
+## 🧱 Objets fondamentaux
+
+- **Pod** : plus petite unité déployable (un ou plusieurs conteneurs + réseau/volumes partagés).
+- **ReplicaSet** : garantit _n_ réplicas identiques d'un Pod (généré par un Deployment).
+- **Deployment** : stratégie de mise à jour (rolling update), historique, rollback.
+- **Service** : point d'accès réseau stable vers un ensemble de Pods (ClusterIP / NodePort / LoadBalancer).
+- **Ingress** : règles HTTP(S) vers des Services (via un _Ingress Controller_ — ex. Traefik).
+- **Namespace** : cloisonnement logique (quotas, RBAC, isolation).
+- **ConfigMap/Secret** : configuration externe & données sensibles.
+
+---
+
+## 📄 Pod minimal (lecture seule)
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+  labels: { app: demo }
+spec:
+  containers:
+    - name: web
+      image: nginx:1.25
+      ports: [{ containerPort: 80 }]
+      resources:
+        requests: { cpu: "100m", memory: "64Mi" }
+        limits: { cpu: "300m", memory: "128Mi" }
+      readinessProbe:
+        httpGet: { path: "/", port: 80 }
+        initialDelaySeconds: 3
+        periodSeconds: 5
 ```
+
+---
+
+## 📦 Deployment (état désiré réplicas=3)
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deploy
+  labels: { app: web }
+spec:
+  replicas: 3
+  selector: { matchLabels: { app: web } }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 1, maxSurge: 1 }
+  template:
+    metadata: { labels: { app: web } }
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.25
+          ports: [{ containerPort: 80 }]
+          resources:
+            requests: { cpu: "100m", memory: "64Mi" }
+            limits: { cpu: "300m", memory: "128Mi" }
+          livenessProbe:
+            httpGet: { path: "/", port: 80 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+```
+
+---
+
+## 🌐 Service + Ingress (exposition HTTP locale)
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+spec:
+  type: ClusterIP
+  selector: { app: web }
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-ing
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - host: web.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-svc
+                port: { number: 80 }
+```
+
+---
+
+## 🛠️ Commandes usuelles (TD-ready)
+
+```bash
+# Appliquer / observer
+kubectl apply -f web-deploy.yaml
+kubectl get deploy,rs,pods,svc,ingress -o wide
+kubectl describe deploy/web-deploy
+
+# Mise à l'échelle
+kubectl scale deploy/web-deploy --replicas=5
+
+# Mise à jour (rolling update)
+kubectl set image deploy/web-deploy web=nginx:1.26
+kubectl rollout status deploy/web-deploy
+kubectl rollout undo deploy/web-deploy
+
+# Débogage rapide
+kubectl logs -l app=web --tail=100
+kubectl exec -it deploy/web-deploy -- sh -lc 'apk add curl; curl -sS web-svc'
+```
+
+---
+
+## 🧭 Stratégies & bonnes pratiques
+
+- **Évitez** de créer des Pods "nus" en prod → utilisez des **Deployments**.
+- Définissez **requests/limits** pour permettre un scheduling prévisible.
+- Utilisez des **probes** (readiness/liveness) pour la résilience.
+- **Labels** cohérents (app, tier, component) → sélection fiable des objets.
+- Externalisez la config (ConfigMap/Secret) → images **immutables**.
+- Versionnez vos manifestes → base pour **GitOps** (Flux CD) et CD.
+
+---
+
+## 🔌 Architecture logique (rappel)
+
+```mermaid
+flowchart TB
+  subgraph CP[Control Plane]
+    APIS[API Server]
+    ET[etcd]
+    SCH[Scheduler]
+    CTRL[Controllers]
+  end
+  subgraph Nodes[Workers]
+    K1[Kubelet + CRI]
+    K2[Kubelet + CRI]
+  end
+  Dev[Dev (kubectl/Flux)] --> APIS
+  APIS <--> ET
+  APIS --> SCH
+  APIS --> CTRL
+  CTRL --> K1
+  CTRL --> K2
+  K1 --> Pods1[Pods]
+  K2 --> Pods2[Pods]
+```
+
+---
+
+## 🧪 Mini‑exercices (alignés TD 2–4)
+
+1. **Lire & appliquer** `web-deploy.yaml`, **observer** la création des Pods.
+2. **Simuler une panne** : supprimer un Pod → constater la recréation.
+3. **Scaler** à 5 réplicas → envoyer des requêtes et voir la répartition.
+4. **Exposer** via Service + Ingress → tester `http://web.local/`.
+
+---
+
+## 🧩 Synthèse
+
+- Kubernetes **orchestré par déclaratif** : vous décrivez, il converge.
+- Les **Controllers** comparent en continu l'état réel à l'état désiré.
+- **Deployments + Services + Ingress** = trio de base pour exposer des apps.
+- Cette fondation prépare la **surveillance** (Prometheus/Grafana) et le **GitOps** (Flux) que vous aborderez ensuite.
+
+# 5️⃣ – La virtualisation au service de l’orchestration
+
+> **Objectif** — Comprendre comment la virtualisation soutient les mécanismes d’orchestration des conteneurs et pourquoi Kubernetes repose encore sur elle pour garantir isolation, élasticité et abstraction des ressources.
+
+---
+
+## 🧩 1. Rappel des niveaux d’isolation
+
+| Niveau          | Technologie                                | Ce qui est isolé                  | Exemple                |
+| --------------- | ------------------------------------------ | --------------------------------- | ---------------------- |
+| **Matériel**    | Virtualisation (KVM, Hyper-V, VMware)      | CPU, mémoire, OS complet          | Machine virtuelle (VM) |
+| **Système**     | Conteneurisation (Docker, LXC, containerd) | Processus, dépendances            | Conteneur              |
+| **Application** | Orchestration (Kubernetes)                 | Services, politiques, état désiré | Pod / Deployment       |
+
+> 🔎 Les couches ne s’excluent pas : elles s’empilent. On exécute des **conteneurs dans des VM**, et ces VM reposent sur des **machines physiques**.
+
+---
+
+## ⚙️ 2. Complémentarité entre virtualisation et orchestration
+
+- La **virtualisation** fournit le **socle matériel abstrait** sur lequel le cluster Kubernetes fonctionne.
+- Elle permet d’isoler les **nœuds** (nodes) les uns des autres tout en partageant le même matériel physique.
+- Kubernetes **planifie les pods** sur ces nœuds — qui sont eux-mêmes souvent des **VM**.
+
+Exemples concrets :
+
+- Sur un **laptop** : MicroK8s crée un environnement virtuel local où chaque composant du cluster tourne dans des services isolés.
+- Sur un **cloud provider** : Kubernetes déploie les pods sur des VM orchestrées (AWS EC2, GCP Compute Engine, OpenStack…).
+
+---
+
+## 💡 3. La virtualisation au service de l’élasticité
+
+La virtualisation ne se limite plus à l’isolation ; elle apporte aussi **l’élasticité** :
+
+- Ajout ou suppression dynamique de VM selon la charge (auto-scaling).
+- Migration à chaud de machines virtuelles (HA, load balancing).
+- Allocation fine des ressources matérielles (CPU, RAM, stockage virtuel).
+
+> Kubernetes exploite cette capacité : lorsqu’il faut plus de capacité, on **ajoute un node virtuel** au cluster.
+
+---
+
+## 🧠 4. Vision systémique : orchestration multi-couches
+
+```mermaid
+flowchart TB
+  subgraph Infra[Infrastructure physique]
+    A1[Serveurs physiques]
+  end
+  subgraph Virt[Couche de virtualisation]
+    V1[VM1]
+    V2[VM2]
+  end
+  subgraph K8s[Cluster Kubernetes]
+    N1[Node 1]
+    N2[Node 2]
+    P1[Pods (containers)]
+  end
+  A1 --> V1 & V2 --> N1 & N2 --> P1
+```
+
+➡️ **Virtualisation** = fondation matérielle abstraite.  
+➡️ **Conteneurisation** = unité d’exécution logique.  
+➡️ **Orchestration (K8s)** = pilotage global et automatisé.
+
+---
+
+## 🔍 5. Conclusion scientifique
+
+- La **virtualisation** opère au **niveau de l’infrastructure** : elle découple le matériel du logiciel.
+- La **conteneurisation** opère au **niveau du processus** : elle isole les applications et leurs dépendances.
+- L’**orchestration** opère au **niveau du système applicatif** : elle décrit et maintient un état désiré.
+
+Ces trois niveaux sont **interdépendants** :
+
+- Kubernetes n’existe pas sans virtualisation.
+- La conteneurisation ne serait pas portable sans abstraction matérielle.
+- L’orchestration exploite les capacités dynamiques des deux couches sous-jacentes.
+
+---
+
+## 📎 6. Lien avec les TD
+
+| TD      | Application de la théorie                                                                   |
+| ------- | ------------------------------------------------------------------------------------------- |
+| **TD1** | Installation de MicroK8s → notion de cluster virtuel sur machine physique                   |
+| **TD2** | Pods et Services → observation des unités logiques d’orchestration                          |
+| **TD3** | CNI et DNS → concrétisation du réseau virtuel interne                                       |
+| **TD4** | Déploiement d’une application → orchestration et abstraction du service                     |
+| **TD5** | Discussion : _« où se trouve la virtualisation dans Kubernetes ? »_ → synthèse conceptuelle |
+
+---
+
+## 🧩 7. À retenir
+
+- La virtualisation n’est **pas dépassée** : elle **soutient** le modèle cloud-native.
+- Kubernetes est une **virtualisation de services** construite sur une **virtualisation d’infrastructure**.
+- L’orchestration n’abolit pas la virtualisation : elle la **consomme** et la **valorise**.
+
+> 🎓 _Comprendre où s’exerce la virtualisation, c’est comprendre comment Kubernetes rend l’infrastructure programmable._
