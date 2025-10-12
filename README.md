@@ -379,18 +379,19 @@ Quand plusieurs conteneurs doivent coopérer :
 ```mermaid
 flowchart LR
   subgraph User[Développeur]
-    A(Manifeste YAML: état désiré)
+    A["Manifeste YAML : état désiré"]
   end
-  A -->|kubectl/apply| B[API Server]
-  B --> C[(etcd\nstocke état désiré)]
+  A -->|"kubectl apply"| B["API Server"]
+  B --> C["etcd (stocke état désiré)"]
   B --> D[Controllers]
-  D --> E{Compare\nétat réel ?}
-  E -- non --> F[Créer/Remplacer/Scaler Pods]
-  F --> G[Kubelet sur Nodes]
-  G --> H[Containers (containerd/CRI-O)]
-  H --> I[États et événements]
+  D --> E{État réel conforme ?}
+  E -- "Non" --> F["Créer / Remplacer / Scaler Pods"]
+  F --> G["Kubelet sur Nodes"]
+  G --> H["Containers (containerd / CRI-O)"]
+  H --> I["États et événements"]
   I --> D
-  E -- oui --> J[Convergence]
+  E -- "Oui" --> J[Convergence]
+
 ```
 
 ---
