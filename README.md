@@ -716,23 +716,33 @@ La virtualisation permet à Kubernetes d’être **élastique** et **résilient*
 
 ```mermaid
 flowchart TB
-  subgraph Dev[Dev local]
-    L[MicroK8s (1 node)]
+  subgraph Dev["P0 — Dev local"]
+    L["MicroK8s (1 node)"]
   end
-  subgraph P1[Single-cluster]
-    CP1[Control Plane géré]
-    NP1[Node Pool]
+
+  subgraph P1["P1 — Single-cluster"]
+    CP1["Control Plane géré"]
+    NP1["Node Pool"]
+    CP1 --> NP1
   end
-  subgraph P2[HA intra-région]
-    CP2[CP HA]
-    NP2a[Pool compute]
-    NP2b[Pool IO]
+
+  subgraph P2["P2 — HA intra-région"]
+    CP2["Control Plane HA"]
+    NP2a["Pool Compute"]
+    NP2b["Pool IO"]
+    CP2 --> NP2a
+    CP2 --> NP2b
   end
-  subgraph P3[Multi-clusters]
-    C1[(Cluster A)]
-    C2[(Cluster B)]
+
+  subgraph P3["P3 — Multi-clusters"]
+    C1["Cluster A"]
+    C2["Cluster B"]
   end
-  L --> CP1 --> CP2 --> C1 & C2
+
+  L --> CP1
+  CP1 --> CP2
+  CP2 --> C1
+  CP2 --> C2
 ```
 
 > **Lecture** : on passe d’un _monocluster mononœud_ à des **pools de nœuds** avec HA, puis à des **multi‑clusters** pour la résilience géographique.
