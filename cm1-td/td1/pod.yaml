@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "demo-web"
+  namespace: default
+  labels:
+    annotations:
+      kubectl.kubernetes.io/default-container: demo-web
+    app: "demo-web"
+spec:
+  containers:
+    - name: web
+      image: "demo-web:0.1"
+      resources:
+        limits:
+          cpu: 200m
+          memory: 500Mi
+        requests:
+          cpu: 100m
+          memory: 200Mi
+      ports:
+        - containerPort: 80
+          name: http
+  restartPolicy: Always
+---
+
