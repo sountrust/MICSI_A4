@@ -1,493 +1,277 @@
-# Setting Up an Azure Managed Kubernetes Cluster (AKS)
+# Du monolithe aux microservices
 
-## Creating a Managed Kubernetes Cluster on Azure via the Portal
+Une application monolithique regroupe toutes les fonctionnalités dans un seul programme.
 
-### Step 1: Log in to Azure Portal
-- Go to [Azure Portal](https://portal.azure.com/)
-- Sign in with your Azure account.
+- Une base de code unique, un seul processus, un seul cycle de déploiement.
+- Simplicité initiale mais forte dépendance interne entre les modules.
+- Tout changement ou panne impacte l’ensemble du système.
 
-### Step 2: Create a Resource Group
-- In the **Azure Portal**, search for "Resource groups."
-- Click **Create** and provide:
-  - **Resource Group Name**: `myResourceGroup`
-  - **Region**: Choose a nearby region to minimize costs (e.g., `East US`).
-- Click **Review + Create** and then **Create**.
-
-### Step 3: Create an AKS Cluster
-- In the **Azure Portal**, search for "Kubernetes services."
-- Click **Create** > **Create a Kubernetes cluster**.
-- Provide the following details:
-  - **Subscription**: Select your active subscription.
-  - **Resource Group**: Choose `myResourceGroup`.
-  - **Cluster Name**: `myAKSCluster`
-  - **Region**: Same as the resource group.
-  - **Prometheus**: Disable Prometheus metrics
-  - **Node Count**: Set to **1** to minimize costs.
-  - **Authentication Method**: Use **System-assigned managed identity**.
-- Click **Review + Create**, then **Create**.
-- Wait for the deployment to complete.
+Lien recommandé : [BD Kubernetes par Google Cloud](https://cloud.google.com/kubernetes-engine/kubernetes-comic/)
 
 ---
 
-## Installing Essential Kubernetes Tools
+# Historique et contexte d'évolution
 
-To efficiently manage the Kubernetes cluster, the following tools must be installed:
+Dans les années 1990–2000, la majorité des applications d’entreprise étaient **monolithiques**.
 
-### Step 1: Install kubectl
+- Modèle client-serveur : un serveur central, un code unique.
+- Les mises à jour exigeaient souvent l’arrêt complet du service.
+- La montée en charge reposait sur du matériel plus puissant (scalabilité verticale).
 
-#### MacOS:
-```sh
-brew install kubectl
-```
-#### Windows:
-Using Chocolatey:
-```sh
-choco install kubernetes-cli -y
-```
-Using Winget:
-```sh
-winget install -e --id Kubernetes.kubectl
-```
-#### Linux (Debian/Ubuntu):
-```sh
-sudo apt update
-sudo apt install -y kubectl
-```
+Progressivement, plusieurs facteurs ont poussé à découper le monolithe :
 
-Verify installation:
-```sh
-kubectl version --client
-```
+- **Complexification** des systèmes (nombre croissant de fonctionnalités).
+- **Émergence du web** et besoin d’intégration entre services externes.
+- **Nouveaux paradigmes** de développement collaboratif (DevOps, intégration continue).
 
-### Step 2: Install Azure CLI
+Les premiers découpages se sont appuyés sur des **protocoles légers** et des **API standardisées** :
 
-#### MacOS:
-```sh
-brew install azure-cli
-```
-#### Windows:
-```sh
-winget install -e --id Microsoft.AzureCLI
-```
-#### Linux (Debian/Ubuntu):
-```sh
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-```
+- **SOAP (1999)** et les _Web Services_ XML → premières tentatives d’interopérabilité.
+- **REST (2000)** → communication simple sur HTTP avec formats légers (JSON, XML).
+- **gRPC (2015)** → protocole binaire efficace basé sur HTTP/2 et Protobuf.
 
-Verify installation:
-```sh
-az version
-```
-
-### Step 3: Install Helm
-Helm is a package manager for Kubernetes.
-
-#### MacOS:
-```sh
-brew install helm
-```
-#### Windows:
-```sh
-choco install kubernetes-helm -y
-```
-#### Linux:
-```sh
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-```
-
-Verify installation:
-```sh
-helm version
-```
-
-### Step 4: Install Flux CLI
-Flux is a GitOps tool used to automate Kubernetes deployments.
-
-```sh
-curl -s https://fluxcd.io/install.sh | sudo bash
-```
-
-Verify installation:
-```sh
-flux --version
-```
-
-### Step 5: Install Lens IDE
-Lens is a Kubernetes IDE for visualizing and managing clusters.
-
-Download and install Lens from [Lens Website](https://k8slens.dev/)
+Ces technologies ont permis à des modules indépendants de dialoguer entre eux, amorçant la transition vers les microservices.
 
 ---
 
-## Connecting to Your AKS Cluster
+# Qu’est-ce qu’un microservice ?
 
-### Step 1: Log in to Azure CLI
-```sh
-az login
-```
-Follow the authentication steps in the browser.
+Un **microservice** est une unité logique et fonctionnelle d’une application.
 
-### Step 2: Retrieve Cluster Credentials
-```sh
-az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
-```
-This command retrieves the kubeconfig file for your cluster.
+- Il implémente une fonction métier unique (ex. : facturation, authentification, API produit).
+- Il s’exécute de manière **indépendante**, souvent sur une instance séparée.
+- Chaque microservice a son propre cycle de développement et de déploiement.
 
-### Step 3: Verify Connection
-```sh
-kubectl get nodes
-```
-If successful, you should see the list of nodes in your cluster.
+Les microservices communiquent entre eux par des **APIs légères**, favorisant :
 
-### Step 4: Retrieve Cluster IP (Load Balancer)
-To find the external IP of the cluster’s load balancer:
-```sh
-kubectl get svc --all-namespaces
-```
-Alternatively, in the Azure Portal:
-- Navigate to your **AKS Cluster**.
-- Click on **Services and Ingress**.
-- Locate the **LoadBalancer** service to find the external IP.
+- la **modularité** du code,
+- la **tolérance aux pannes**,
+- la **scalabilité horizontale** (chaque service peut être répliqué selon la charge).
 
-Share the external IP and the chosen name with the instructor to create a DNS entry in Cloudflare:
+Cependant, cette modularité introduit de nouveaux défis : gestion de l’infrastructure, du réseau et du déploiement.
+
+---
+
+# Microservice vs conteneur
+
+❌ Un **microservice n’est pas un conteneur**.
+
+- Le microservice est un **concept logiciel** (composant applicatif indépendant).
+- Le conteneur est un **mécanisme d’exécution** (environnement isolé pour un processus).
+
+✔️ Un **conteneur** héberge souvent un **microservice** :
+
+- Il contient le code, les dépendances et le runtime nécessaires à l’exécution.
+- Il garantit la cohérence entre environnements de développement et de production.
+- Il assure **l’immutabilité** : un conteneur déployé ne change pas, il est remplacé lors d’une mise à jour.
+- Il offre **l’interopérabilité** : le même conteneur fonctionne sur tout hôte supportant un moteur de conteneurisation.
+
+---
+
+# Pourquoi la conteneurisation est essentielle
+
+La conteneurisation répond aux limites des microservices déployés manuellement.
+
+- Elle fournit un **environnement portable, standardisé et isolé**.
+- Elle favorise l’**immutabilité** : on remplace les instances au lieu de les modifier.
+- Elle favorise l’**interopérabilité** : les images fonctionnent sur n’importe quel système compatible.
+- Elle simplifie le **déploiement et la montée en charge automatique**.
+- Elle permet la **résilience** : les conteneurs peuvent être recréés automatiquement.
+
+Ces deux propriétés — **immutabilité** et **interopérabilité** — sont au cœur de la philosophie cloud-native que Kubernetes orchestre à grande échelle.
+
+---
+
+# Limites du modèle monolithique
+
+- Difficulté à faire évoluer ou à corriger sans recompiler tout le projet.
+- Scalabilité uniquement **verticale** (plus de CPU/RAM sur une seule machine).
+- Déploiement lent et risqué : un bug peut interrompre tout le service.
+- Couplage fort entre équipes et technologies : impossible de faire cohabiter plusieurs stacks.
+
+Exemple de processus monolithique :
+
+```bash
+java -jar application-complete.jar
 ```
-Format: [name].sountrust.fr
+
+Un seul binaire qui contient API, interface web, logique métier et accès aux données.
+
+---
+
+# Vers la modularité : l’idée des microservices
+
+Le découpage en **microservices** vise à isoler chaque fonction dans un service autonome.
+
+- Chaque microservice possède son propre code, ses dépendances, et sa base de données.
+- Communication par API (HTTP, gRPC, message bus…).
+- Permet une **scalabilité horizontale** : on réplique uniquement les parties sollicitées.
+- Facilite les pipelines CI/CD : chaque service peut être testé et déployé indépendamment.
+
+---
+
+# Du point de vue architectural
+
+| Aspect                | Monolithe     | Microservices                     |
+| --------------------- | ------------- | --------------------------------- |
+| **Couplage**          | Fort          | Faible                            |
+| **Déploiement**       | Unique        | Indépendant                       |
+| **Scalabilité**       | Verticale     | Horizontale                       |
+| **Résilience**        | Panne globale | Isolement des pannes              |
+| **Complexité réseau** | Faible        | Élevée (API, discovery, sécurité) |
+
+Les microservices déplacent la complexité du code vers l’infrastructure réseau.
+
+---
+
+# Problème nouveau : comment exécuter tous ces services ?
+
+Avec plusieurs microservices, chaque composant doit :
+
+- Être isolé de manière fiable.
+- Communiquer avec les autres services.
+- Être mis à jour et supervisé sans perturber le reste.
+
+Cela demande un **mécanisme d’isolation et de gestion** :
+➡️ **la virtualisation** pour séparer les environnements,
+➡️ **la conteneurisation** pour isoler les processus applicatifs.
+
+Les deux technologies sont complémentaires :
+
+- La virtualisation fournit la base matérielle.
+- La conteneurisation offre la flexibilité logicielle.
+
+---
+
+# Exemple de transition pratique
+
+Une équipe passe d’un monolithe à un premier microservice :
+
+```bash
+# Monolithe initial
+java -jar monolith.jar
+
+# Microservice isolé
+python3 -m http.server 8080
+```
+
+Le service est désormais indépendant…
+Mais pour en gérer **dizaines ou centaines**, il faudra les **isoler**, les **connecter** et les **orchestrer**.
+
+➡️ Ce besoin mènera naturellement vers la virtualisation et la conteneurisation.
+
+# Virtualisation : l'isolation matérielle
+
+La virtualisation est la première étape vers la mutualisation efficace des ressources informatiques. Elle permet de faire fonctionner plusieurs systèmes d’exploitation et environnements logiciels sur un même matériel physique ou sur un ensemble de matériels agrégés.
+
+---
+
+# Définition et principe
+
+La **virtualisation** consiste à créer plusieurs environnements indépendants appelés **machines virtuelles (VM)** à partir d’un ensemble de ressources physiques.
+
+- Chaque VM dispose de son propre système d’exploitation, de son espace mémoire, de son stockage et de ses interfaces réseau.
+- Ces environnements sont totalement isolés les uns des autres.
+- Un **hyperviseur** orchestre la répartition et l’utilisation des ressources physiques.
+
+Mais un hyperviseur ne se contente pas de diviser les ressources :
+
+- Il peut **agréger plusieurs ressources matérielles de même type** (par exemple plusieurs processeurs physiques ou disques) pour les présenter comme une seule ressource virtuelle.
+- Il peut ensuite **rediviser** cette ressource agrégée en plusieurs ressources virtuelles indépendantes des ressources matérielles sous-jacentes.
+
+Ainsi, la virtualisation permet de découpler totalement l’environnement d’exécution des contraintes matérielles réelles.
+
+---
+
+# Les deux grands types d’hyperviseurs
+
+### Hyperviseur de type 1 – _bare-metal_
+
+- Fonctionne directement sur le matériel physique.
+- Il gère le CPU, la mémoire, le stockage et le réseau sans passer par un OS hôte.
+- Performances élevées, fiabilité accrue.
+- Utilisé dans les environnements serveurs et data centers.
+
+**Exemples :** VMware ESXi, Microsoft Hyper-V, KVM, Xen.
+
+### Hyperviseur de type 2 – _hébergé_
+
+- Fonctionne au-dessus d’un système d’exploitation déjà existant.
+- Il virtualise les ressources fournies par l’OS hôte.
+- Plus simple à installer, adapté aux postes de travail ou environnements de test.
+
+**Exemples :** VirtualBox, VMware Workstation, Parallels Desktop.
+
+---
+
+# Rôle de l'hyperviseur
+
+L’hyperviseur agit comme une couche d’abstraction entre le matériel et les machines virtuelles.
+
+- Il **alloue dynamiquement** les ressources physiques selon les besoins des VMs.
+- Il **isole** les environnements virtuels pour éviter toute interférence.
+- Il **agrège** ou **fractionne** les ressources matérielles de manière transparente.
+
+Schéma conceptuel :
+
+```
+Matériel physique (CPU, RAM, disque, réseau)
+   ↓
+Hyperviseur
+   ↓ ↓ ↓
+VM1 (Linux) | VM2 (Windows) | VM3 (Ubuntu Server)
 ```
 
 ---
 
-## Creating a Local Project and Pushing to GitLab/Github
+# Avantages de la virtualisation
 
-### Step 1: Create a Local Project Directory
-```sh
-mkdir my-k8s-project
-cd my-k8s-project
-```
+- **Isolation complète** : chaque VM est un environnement indépendant.
+- **Mutualisation** : meilleure utilisation des ressources matérielles.
+- **Portabilité** : les VMs peuvent être déplacées ou copiées sur d’autres hôtes.
+- **Flexibilité** : création rapide d’environnements de test ou de production.
+- **Abstraction** : indépendance entre le matériel réel et les environnements exécutés.
 
-### Step 2: Copy and Paste the README File
-Save this `README.md` file inside your `my-k8s-project` directory.
-
-### Step 3: Initialize Git Repository
-```sh
-git init
-```
-
-### Step 4: Add Files to Git
-```sh
-git add .
-```
-
-### Step 5: Commit the Changes
-```sh
-git commit -m "Initial commit with README"
-```
-
-### Step 6: Push to GitLab Server
-1. Request an account from the instructor.
-2. Once you have your GitLab account, create a new repository.
-3. Link your local repository to the GitLab remote:
-   ```sh
-   git remote add origin https://baowlab.sountrust.fr/micsi_a4/your-repository.git or https://github.com
-   ```
-4. Push the changes to GitLab/Github:
-   ```sh
-   git push -u origin main
-   ```
-
-Now your project is stored in GitLab/Github, ready for further development!
+Exemple pratique : un serveur physique peut héberger plusieurs services (base de données, serveur web, stockage) chacun dans sa propre VM.
 
 ---
 
-## Setting Up Traefik Reverse Proxy
+# Limites de la virtualisation
 
-To enable reverse proxy capabilities, you will copy the provided `values.yaml` file into your repository and deploy Traefik using Helm.
+- **Surcharge système** : chaque VM embarque un OS complet → consommation mémoire importante.
+- **Temps de démarrage élevé** comparé aux conteneurs.
+- **Complexité de gestion** : maintenance et mises à jour multiples.
 
-### Step 1: Create a Traefik Directory in Your Repository
-```sh
-mkdir -p traefik
-cd traefik
-```
+Pour répondre à cette complexité, de nouvelles approches sont apparues :
 
-### Step 2: Copy the Provided `values.yaml`
-Manually copy and paste the content of the `values.yaml` file provided by the instructor into a new file in your repository:
+### Infrastructure as Code (IaC)
 
-1. Open the `traefik/values.yaml` file in your instructor GitLab repository.
-2. Copy its entire content.
-3. On your local machine, inside the `traefik` directory, create the file:
-   ```sh
-   nano values.yaml
-   ```
-4. Paste the copied content into the file.
-5. Save and exit (`CTRL + X`, then `Y`, then `Enter`).
+L’**Infrastructure as Code** propose une approche **déclarative** de la gestion des environnements.
 
-### Step 3: Commit and Push the Changes to GitLab
-```sh
-git add traefik/values.yaml
-git commit -m "Added values.yaml for Traefik"
-git push origin main
-```
+- L’administrateur ou le développeur **décrit l’état attendu** de l’infrastructure (réseaux, machines, services, règles).
+- Un outil d’automatisation se charge de **créer, configurer ou mettre à jour** les ressources pour atteindre cet état.
+- Cette approche rapproche la gestion d’infrastructure de la logique logicielle : versionnage, réutilisation, et reproductibilité.
 
-### Step 4: Deploy Traefik with Helm
-Run the following commands to deploy Traefik in your AKS cluster:
-```sh
-helm repo add traefik https://traefik.github.io/charts
-helm repo update
-helm install traefik traefik/traefik -n default -f traefik/values.yaml
-```
+**Exemples d’outils IaC :**
 
-### Step 5: Verify Traefik Deployment
-Check if Traefik is running successfully:
-```sh
-kubectl get pods -n default
-```
+- Terraform / OpenTofu : gestion d’infrastructures multi-clouds.
+- Ansible, Puppet, Chef : automatisation des configurations.
+- CloudFormation, Pulumi : gestion déclarative native du cloud.
 
-Once this is done, your Traefik reverse proxy should be operational.
-
-
-# Setting Up Kubernetes Cluster Components
-
-## Setting Up Cert-Manager for SSL Certificates
-
-Cert-Manager is used to manage TLS certificates automatically within the Kubernetes cluster.
-
-### Step 1: Install Cert-Manager Using kubectl
-Run the following command to install Cert-Manager:
-```sh
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.0/cert-manager.yaml
-```
-This deploys Cert-Manager into your cluster.
-
-### Step 2: Verify Cert-Manager Deployment
-Check if Cert-Manager is running successfully:
-```sh
-kubectl get pods -n cert-manager
-```
-Ensure that all Cert-Manager pods are in the `Running` state before proceeding.
-
-### Step 3: Create a Cluster-Issuer Configuration
-To configure Cert-Manager to issue certificates using ACME (Let's Encrypt), create a new directory for the cluster issuer configuration.
-```sh
-mkdir -p certmanager
-cd certmanager
-```
-
-### Step 4: Copy the Provided `cluster-issuer-acme.yaml`
-Manually copy and paste the content of the `cluster-issuer-acme.yaml` file provided by the instructor into a new file in your repository:
-
-1. Open the `certmanager/cluster-issuer-acme.yaml` file in your GitLab repository.
-2. Copy its entire content.
-3. On your local machine, inside the `certmanager` directory, create the file:
-   ```sh
-   nano cluster-issuer-acme.yaml
-   ```
-4. Paste the copied content into the file.
-5. Save and exit (`CTRL + X`, then `Y`, then `Enter`).
-
-### Step 5: Commit and Push the Changes to GitLab
-```sh
-git add certmanager/cluster-issuer-acme.yaml
-git commit -m "Added cluster-issuer configuration for Cert-Manager"
-git push origin main
-```
-
-### Step 6: Apply the Cluster Issuer Configuration
-```sh
-kubectl apply -f certmanager/cluster-issuer-acme.yaml
-```
-This registers Cert-Manager to issue SSL certificates using Let's Encrypt for your Kubernetes cluster.
-
-Once this is done, Cert-Manager will handle SSL certificate provisioning automatically.
-# Setting Up Kubernetes GitOps with Flux
-
-## Prerequisites
-Flux requires write access to a Git repository where it will store Kubernetes manifests for deployment automation. You must first generate a personal access token (PAT) for authentication.
-
-### Step 1: Generate a Personal Access Token (PAT)
-#### GitHub:
-1. Go to **GitHub** > **Settings** > **Developer settings** > **Personal access tokens**.
-2. Click **Generate new token**.
-3. Select scopes:
-   - `repo` (Full control of repositories)
-   - `write:packages`
-   - `read:org` (if working with organization repositories)
-4. Click **Generate Token** and copy the generated token.
-
-#### GitLab:
-1. Go to **GitLab** > **User Settings** > **Access Tokens**.
-2. Enter a name for the token.
-3. Select scopes:
-   - `api`
-   - `write_repository`
-4. Click **Create Personal Access Token** and copy the generated token.
-
-### Step 2: Set the Token as an Environment Variable
-For convenience, store the token in an environment variable so Flux can use it without manual entry.
-```sh
-export GIT_AUTH_TOKEN=<your-generated-token>
-```
-Ensure this variable is set in your shell configuration (`~/.bashrc` or `~/.zshrc`) for persistence.
-
-## Bootstrapping Flux with GitHub and GitLab
-Flux needs to be bootstrapped into your Kubernetes cluster to begin monitoring repositories and deploying configurations.
-
-### Step 1: Install Flux CLI
-If not already installed:
-```sh
-curl -s https://fluxcd.io/install.sh | sudo bash
-```
-Verify installation:
-```sh
-flux --version
-```
-
-### Step 2: Bootstrap Flux
-#### GitHub Bootstrap:
-```sh
-flux bootstrap github \
-  --owner=<github-username-or-org> \
-  --repository=<repo-name> \
-  --branch=main \
-  --path=clusters/my-cluster \
-  --personal \
-  --token-auth
-```
-
-#### GitLab Bootstrap:
-```sh
-flux bootstrap gitlab \
-  --owner=<gitlab-username-or-group> \
-  --repository=<repo-name> \
-  --branch=main \
-  --path=clusters/my-cluster \
-  --token-auth
-```
-
-This command sets up Flux in your Kubernetes cluster, linking it to the specified repository, which it will watch for configuration changes.
-
-## Creating a Repository for Application Configurations
-To store and manage application configurations (e.g., OwnCloud), create a separate repository.
-
-### Step 1: Create a Local Repository for App Configurations
-```sh
-mkdir -p flux-apps
-cd flux-apps
-```
-
-### Step 2: Initialize a Git Repository
-```sh
-git init
-```
-
-### Step 3: Create a Folder for OwnCloud Configurations
-```sh
-mkdir owncloud
-cd owncloud
-```
-
-### Step 4: Define the Kubernetes Manifests for OwnCloud
-Inside the `owncloud` directory, create Kubernetes deployment and service manifests.
-
-1. Create a `kustomization.yaml` file:
-   ```yaml
-   resources:
-     - deployment.yaml
-     - service.yaml
-   ```
-
-2. Create a basic `deployment.yaml` file:
-   ```yaml
-   apiVersion: apps/v1
-   kind: Deployment
-   metadata:
-     name: owncloud
-   spec:
-     replicas: 1
-     selector:
-       matchLabels:
-         app: owncloud
-     template:
-       metadata:
-         labels:
-           app: owncloud
-       spec:
-         containers:
-           - name: owncloud
-             image: owncloud:latest
-             ports:
-               - containerPort: 80
-   ```
-
-3. Create a `service.yaml` file:
-   ```yaml
-   apiVersion: v1
-   kind: Service
-   metadata:
-     name: owncloud-service
-   spec:
-     selector:
-       app: owncloud
-     ports:
-       - protocol: TCP
-         port: 80
-         targetPort: 80
-   ```
-
-### Step 5: Commit and Push the Configuration Repository
-```sh
-git add .
-git commit -m "Initial commit with OwnCloud manifests"
-git push origin main
-```
-
-### Step 6: Create flux secret 
-#### Gitlab
-```sh
-flux create secret git flux-deploy-authentication \
-  --url=https://gitlab.com/owner/votre_projet_de_deploiement \
-  --namespace=flux-system \
-  --username="$kube_deploy_user_access" \
-  --password="$kube_deploy_token_access"
-```
-
-#### Github:
-```sh
-flux create secret git flux-deploy-authentication \
-  --url=https://github.com/owner/votre_projet_de_deploiement \
-  --namespace=flux-system \
-  --username="$kube_deploy_user_access" \
-  --password="$kube_deploy_token_access"
-```
-
-## Step 7: Kustomize your flux autodeploy
-#### File location: your-repository/flux/microk8s-configuration.yaml
- ```yaml
- ---
-apiVersion: source.toolkit.fluxcd.io/v1beta2
-kind: GitRepository
-metadata:
-  name: flux-apps 
-  namespace: flux-system
-spec:
-  interval: 1m0s
-  ref:
-    branch: main
-  secretRef:
-    name: flux-deploy-authentication
-  url: https://git-server.com/owner/repos
+Cette logique **déclarative**, déjà au cœur de la virtualisation moderne, sera reprise et amplifiée dans la conteneurisation et l’orchestration (voir section 4 sur Kubernetes).
 
 ---
-apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
-kind: Kustomization
-metadata:
-  name: owncloud-apps
-  namespace: flux-system
-spec:
-  interval: 1m0s
-  path: ./owncloud
-  prune: true
-  sourceRef:
-    kind: GitRepository
-    name: flux-apps
-    namespace: flux-system
 
-```
+# De la virtualisation à la conteneurisation
+
+La conteneurisation ne remplace pas la virtualisation, elle s’appuie sur elle.
+
+- Les VMs assurent l’isolation matérielle.
+- Les conteneurs assurent l’isolation logicielle (niveau processus).
+
+En pratique :
+
+- Un cluster Kubernetes est souvent déployé **sur des VMs** (dans le cloud ou sur un hyperviseur local).
+- Les conteneurs s’exécutent **à l’intérieur** de ces VMs.
+
+Ce modèle combine la **sécurité et la robustesse de la virtualisation** avec la **légèreté et la rapidité des conteneurs**, fondant les architectures modernes dites _cloud-native_.
