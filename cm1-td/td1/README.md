@@ -1,214 +1,279 @@
-# 🧱 TD1 — Du conteneur Docker à l’orchestrateur local (MicroK8s / Minikube)
+# 🧩 TD1 – Du Docker à MicroK8s sous Linux
 
-> 🌟 **Objectif :** comprendre la continuité entre Docker et Kubernetes, en déployant une image construite localement sur un mini-cluster.
+## 🎯 Objectifs pédagogiques
 
-Durée : 1h
-Pré-requis : notions de base en Docker (images, conteneurs)
-Matériel : poste personnel avec Docker Desktop ou Snap Docker + MicroK8s / Minikube
-
----
-
-## 1️⃣ – Introduction et but du TD
-
-Dans ce premier TD, vous allez :
-
-- créer une image Docker personnalisée à partir d’un `Dockerfile`,
-- l’exécuter localement pour valider son fonctionnement,
-- puis la déployer sur un cluster local (Minikube ou MicroK8s).
-
-> 💡 Vous verrez que Kubernetes orchestre les **mêmes conteneurs Docker**, mais d’une manière **déclarative et scalable**.
+- Installer et configurer l’environnement complet sous **Linux** (Docker, Git, Minikube, Kubectl).
+- Comprendre la chaîne logique : **Docker → Image → Cluster local (Minikube)**.
+- Déployer et tester une application conteneurisée.
+- Vérifier le fonctionnement du fichier `~/.kube/config` et les interactions entre outils.
 
 ---
 
-## 2️⃣ – Préparation de l’environnement
+## 1️⃣ Installation et préparation de l’environnement
 
-### a. Vérifiez Docker
+### 🔧 Mise à jour du système
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+### 🐳 Installer Docker
+
+```bash
+sudo apt install -y docker.io
+sudo systemctl enable docker --now
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+Vérification :
 
 ```bash
 docker --version
-docker run hello-world
-```
-
-Vous devez obtenir un message confirmant l’installation.
-
-### b. Installez un orchestrateur local
-
-**Option 1 – MicroK8s (Linux)** :
-
-```bash
-sudo snap install microk8s --classic
-sudo microk8s status --wait-ready
-sudo microk8s enable dns dashboard ingress
-```
-
-**Option 2 – Minikube (Windows/macOS/Linux)** :
-
-```bash
-minikube start
-kubectl get nodes
-```
-
----
-
-## 3️⃣ – Création d’une image Docker
-
-Créez un dossier `td1` puis ajoutez un fichier `Dockerfile` :
-
-```dockerfile
-# Application web simple
-FROM nginx:1.25-alpine
-COPY index.html /usr/share/nginx/html/index.html
-EXPOSE 80
-```
-
-Et un fichier `index.html` :
-
-```html
-<h1>Hello Kubernetes 👋</h1>
-<p>Déployé depuis Docker vers MicroK8s</p>
-```
-
-### a. Construction de l’image
-
-```bash
-docker build -t demo-web:1.0 .
+docker ps
 docker images
 ```
 
-### b. Test local
+### 📦 Installer Minikube et Kubectl
+
+```bash
+sudo apt install -y curl apt-transport-https virtualbox virtualbox-ext-pack
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+```
+
+Vérification :
+
+```bash
+minikube version
+kubectl version --client
+```
+
+### 🧰 Installer Git
+
+```bash
+sudo apt install -y git
+```
+
+Vérification :
+
+```bash
+git --version
+```
+
+---
+
+## 2️⃣ Lancer le cluster Minikube
+
+Démarrer le cluster avec le driver Docker :
+
+```bash
+minikube start --driver=docker
+```
+
+Vérification :
+
+```bash
+minikube status
+kubectl get nodes
+kubectl cluster-info
+```
+
+➡️ Le nœud doit être **Ready** et le cluster doit afficher les URL de l’API Server et du dashboard.
+
+---
+
+## 3️⃣ Vérifier la configuration Kubernetes (`~/.kube/config`)
+
+Lister le contenu :
+
+```bash
+ls ~/.kube/
+```
+
+Ouvrir le fichier :
+
+```bash
+vim ~/.kube/config
+```
+
+Points à observer :
+
+- `clusters:` → définition du cluster local (adresse API Server)
+- `users:` → identifiants de connexion
+- `contexts:` → combinaison cluster + user
+- `current-context:` → cluster actuellement utilisé
+
+Changer de contexte (si plusieurs existent) :
+
+```bash
+kubectl config get-contexts
+kubectl config use-context minikube
+```
+
+Vérifier :
+
+```bash
+kubectl cluster-info
+```
+
+---
+
+## 4️⃣ Créer une image Docker locale
+
+Créer un **Dockerfile** minimal :
+
+```dockerfile
+FROM nginx:alpine
+COPY index.html /usr/share/nginx/html/index.html
+```
+
+Créer un fichier `index.html` :
+
+```html
+<h1>Bienvenue sur votre premier conteneur Docker !</h1>
+```
+
+Construire et vérifier :
+
+```bash
+docker build -t demo-web:1.0 .
+docker images | grep demo-web
+```
+
+Tester localement :
 
 ```bash
 docker run -d -p 8080:80 demo-web:1.0
+docker ps
 curl http://localhost:8080
 ```
 
-> 🧠 L’image Docker contient tout ce qu’il faut pour exécuter votre mini-application.
+Arrêter et nettoyer :
+
+```bash
+docker stop $(docker ps -q)
+```
 
 ---
 
-## 4️⃣ – Déploiement sur Minikube / MicroK8s
+## 5️⃣ Charger l’image dans Minikube
 
-### a. Charger l’image locale dans le cluster
-
-**Minikube :**
+Construire l’image **directement dans le démon Docker de Minikube** :
 
 ```bash
-minikube image load demo-web:1.0
+eval $(minikube -p minikube docker-env)
+docker build -t demo-web:1.0 .
+docker images | grep demo-web
 ```
 
-**MicroK8s :**
+Vérifier que l’image est bien visible dans le cluster :
 
 ```bash
-microk8s ctr images import demo-web:1.0
+minikube image ls | grep demo-web
 ```
-
-### b. Créer un manifeste `pod.yaml`
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: demo-web
-  labels:
-    app: demo-web
-spec:
-  containers:
-    - name: web
-      image: demo-web:1.0
-      ports:
-        - containerPort: 80
-```
-
-### c. Appliquer le manifeste
-
-```bash
-kubectl apply -f pod.yaml
-kubectl get pods
-```
-
-> Si le pod est en statut **Running**, il est bien déployé sur votre cluster local.
 
 ---
 
-## 5️⃣ – Tester l’application dans le cluster
+## 6️⃣ Déployer un Pod dans Kubernetes
 
-**Option 1 – Port-forwarding (universel)** :
+Créer le Pod :
+
+```bash
+kubectl run demo-web --image=demo-web:1.0 --port=80 --image-pull-policy=Never
+```
+
+Vérifier :
+
+```bash
+kubectl get pods -o wide
+```
+
+Suivre les logs :
+
+```bash
+kubectl logs -l run=demo-web
+```
+
+Exposer le Pod localement :
 
 ```bash
 kubectl port-forward pod/demo-web 8080:80
 ```
 
-Puis ouvrez [http://localhost:8080](http://localhost:8080)
-
-**Option 2 – Service exposé (facultatif)** :
+Tester :
 
 ```bash
-kubectl expose pod demo-web --port=80 --type=NodePort
-kubectl get svc
+curl http://localhost:8080
 ```
 
 ---
 
-## 6️⃣ – Observation et nettoyage
+## 7️⃣ Observation et diagnostic
+
+Lister les images dans Minikube :
+
+```bash
+minikube image ls
+```
+
+Lister les services et pods :
+
+```bash
+kubectl get all -o wide
+```
+
+Inspecter le Pod :
 
 ```bash
 kubectl describe pod demo-web
-kubectl logs demo-web
-kubectl delete pod demo-web
+```
+
+Afficher l’état du cluster :
+
+```bash
+kubectl cluster-info dump | grep demo-web -A5
 ```
 
 ---
 
-## 7️⃣ – 📦 Comparaison Docker vs Kubernetes
+## 8️⃣ Utilisation de Git pour versionner le travail
 
-| Action                     | Docker           | Kubernetes                     |
-| -------------------------- | ---------------- | ------------------------------ |
-| Lancer un conteneur        | `docker run`     | `kubectl apply -f pod.yaml`    |
-| Exposer un port            | `-p 8080:80`     | `Service` ou `port-forward`    |
-| Supprimer                  | `docker rm`      | `kubectl delete`               |
-| Gérer plusieurs conteneurs | `docker compose` | `Deployment`                   |
-| État de l’application      | Non conservé     | **Déclaratif (state desired)** |
-
----
-
-## 8️⃣ – Versionner avec Git
-
-### a. Initialisez votre dépôt local
+Initialiser un dépôt local :
 
 ```bash
 git init
-git add .
-git commit -m "TD1 - image Docker + Pod Kubernetes"
+git add Dockerfile index.html
+
+git commit -m "TD1 - Création de l’image demo-web et déploiement sur Minikube"
 ```
 
-### b. Rattachez votre dépôt distant
+Ajouter le dépôt distant :
 
 ```bash
-git remote add origin https://gitlab.com/votre-organisation/cm1-tds.git
+git remote add origin https://gitlab.example.com/virtualisation/cm1-td.git
 git push -u origin main
 ```
 
-> 💡 Le dépôt Git devient votre **support de soumission** : code + manifestes + notes.
+Vérifier :
+
+```bash
+git status
+git log --oneline
+```
 
 ---
 
-## 🧭 À la fin du TD
+## 🧠 Bilan du TD1
 
-Vous devez être capable de :
-
-- construire et tester une image Docker,
-- la charger dans Minikube ou MicroK8s,
-- la déployer sous forme de Pod,
-- comprendre que Kubernetes orchestre vos images, pas autre chose.
+- Installation complète de Docker, Minikube, Kubectl et Git.
+- Création, test et déploiement d’une image Docker dans un cluster local.
+- Observation de `~/.kube/config` et compréhension du lien entre `kubectl` et le cluster.
+- Première interaction concrète avec un Pod exécuté sur Kubernetes.
 
 ---
 
-### ✅ Travail à rendre (sur Git ou Moodle)
-
-- Le `Dockerfile`
-- Le `index.html`
-- Le `pod.yaml`
-- Une capture d’écran du pod **Running**
-- Une courte phrase :
-
-  > “En une phrase : que fait Kubernetes de plus que Docker ici ?”
+> 🎓 **Préparation TD2 :** Vous convertirez le fichier `docker-compose.yml` du même projet en manifestes Kubernetes (Pod, Service, Deployment).
