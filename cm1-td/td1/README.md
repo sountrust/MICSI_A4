@@ -242,7 +242,7 @@ kubectl cluster-info dump | grep demo-web -A5
 
 ## 8️⃣ Utilisation de Git pour versionner le travail
 
-Initialiser un dépôt local :
+Initialiser un dépôt local et pousser sur le gitlab de l'iut:
 
 ```bash
 git init
