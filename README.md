@@ -275,3 +275,80 @@ En pratique :
 - Les conteneurs s’exécutent **à l’intérieur** de ces VMs.
 
 Ce modèle combine la **sécurité et la robustesse de la virtualisation** avec la **légèreté et la rapidité des conteneurs**, fondant les architectures modernes dites _cloud-native_.
+
+Conteneurisation : l’isolation logicielle
+
+La conteneurisation représente une évolution de la virtualisation : elle isole non plus des systèmes d’exploitation entiers, mais des processus au sein d’un même noyau.
+
+⸻
+
+Définition et principe
+
+Un conteneur est une unité d’exécution légère et portable qui regroupe :
+• le code applicatif,
+• ses dépendances (bibliothèques, configurations),
+• et un environnement système minimal nécessaire à son fonctionnement.
+
+Contrairement à une VM, un conteneur partage le noyau de l’hôte et n’embarque pas d’OS complet. Cela le rend beaucoup plus léger et rapide à déployer.
+
+⸻
+
+Mécanismes sous-jacents : isolation et contrôle
+
+Les conteneurs reposent sur deux briques fondamentales du noyau Linux :
+• Namespaces : isolation des espaces de noms (processus, utilisateurs, réseau, système de fichiers…). Chaque conteneur a sa propre vision du système.
+• Cgroups (Control Groups) : limitation et suivi des ressources utilisées (CPU, mémoire, E/S disque, réseau).
+
+Ces mécanismes permettent à plusieurs conteneurs de coexister sans interférer les uns avec les autres.
+
+⸻
+
+Comparaison VM vs Conteneur
+
+Aspect Machine virtuelle Conteneur
+Noyau Indépendant Partagé avec l’hôte
+Taille Plusieurs Go Quelques Mo
+Temps de démarrage Minutes Secondes
+Isolement Complet (OS dédié) Logique (processus)
+Performance Plus lourde Légère
+
+⸻
+
+Outils de conteneurisation
+• Docker : moteur de conteneurisation le plus répandu, simplifie la création et la gestion d’images.
+• Podman / Buildah : alternatives open-source à Docker, compatibles avec le standard OCI.
+• containerd / CRI-O : moteurs utilisés dans les clusters Kubernetes.
+
+⸻
+
+Avantages de la conteneurisation
+• Légèreté : exécution rapide, faible empreinte mémoire.
+• Portabilité : même image exécutable sur toute plateforme compatible.
+• Immutabilité : un conteneur ne change pas après son déploiement, il est remplacé par une nouvelle version.
+• Interopérabilité : standardisation via les spécifications OCI (Open Container Initiative).
+• Reproductibilité : même environnement de dev, test et production.
+
+⸻
+
+Exemple pratique : un conteneur simple
+
+# Télécharger et exécuter un conteneur NGINX
+
+sudo docker run -d -p 8080:80 nginx
+
+# Vérifier le fonctionnement
+
+curl http://localhost:8080
+
+Le conteneur démarre en quelques secondes, expose un service web et s’exécute de manière isolée du reste du système.
+
+⸻
+
+De la conteneurisation à l’orchestration
+
+Quand les applications nécessitent plusieurs conteneurs interconnectés (base de données, API, front-end, monitoring), il devient nécessaire de :
+• automatiser les déploiements,
+• gérer les dépendances et le réseau,
+• assurer la tolérance aux pannes et la montée en charge.
+
+Ces besoins ont conduit à l’apparition des orchestrateurs de conteneurs comme Docker Swarm, Mesos et surtout Kubernetes.
