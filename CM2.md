@@ -324,7 +324,8 @@ Applique ou met à jour un manifest existant. Il crée l’objet s’il n’exis
 kubectl apply -f deployment.yaml
 ```
 
-Kubernetes conserve une copie de la configuration appliquée (dans l’annotation `kubectl.kubernetes.io/last-applied-configuration`), ce qui permet de **comparer les différences** et d’**effectuer des mises à jour progressives**.
+Kubernetes conserve une copie de la configuration appliquée (dans l’annotation `kubectl.kubernetes.io/last-applied-configuration`),
+ce qui permet de **comparer les différences** et d’**effectuer des mises à jour progressives**.
 
 ### 💡 En résumé
 
@@ -465,7 +466,8 @@ Ces commandes permettent de relier la **théorie (fichier YAML)** à la **réali
 
 Après avoir découvert comment décrire les objets Kubernetes (Pods, Deployments, Services) via YAML, nous abordons maintenant la **structure logique et réseau** du cluster.
 
-Kubernetes est un système **déclaratif et auto-régulé** : le Control Plane s'assure que l'état du cluster correspond en permanence à l'état déclaré. Cette réconciliation s'applique non seulement aux objets applicatifs, mais également à la façon dont les applications sont organisées, exposées et isolées.
+Kubernetes est un système **déclaratif et auto-régulé** : le Control Plane s'assure que l'état du cluster correspond en permanence à l'état déclaré.
+Cette réconciliation s'applique non seulement aux objets applicatifs, mais également à la façon dont les applications sont organisées, exposées et isolées.
 
 Dans cette partie, nous allons comprendre comment Kubernetes :
 
@@ -480,7 +482,8 @@ Dans cette partie, nous allons comprendre comment Kubernetes :
 
 ### 2.1. Rôle fondamental
 
-Un **namespace** est un espace logique d'isolation à l'intérieur d'un cluster. Il ne sert **pas à représenter un environnement (dev/test/prod)**, mais à **segmenter et organiser** les ressources en fonction de domaines fonctionnels, d'équipes, ou d'applications.
+Un **namespace** est un espace logique d'isolation à l'intérieur d'un cluster.
+Il sert à **segmenter et organiser** les ressources en fonction de domaines fonctionnels, d'équipes, ou d'applications.
 
 Chaque namespace constitue un **domaine d'administration et de sécurité** distinct :
 
@@ -545,7 +548,8 @@ Une idée fausse très répandue consiste à assimiler les namespaces à des env
 
 ### 3.1. Problématique
 
-Les Pods sont éphémères : leurs adresses IP changent à chaque recréation. Les Services assurent une **adresse stable et un mécanisme de découverte interne (DNS)**.
+Les Pods sont éphémères : leurs adresses IP changent à chaque recréation.
+Les Services assurent une **adresse stable et un mécanisme de découverte interne (DNS)**.
 
 ### 3.2. Types de Services
 
