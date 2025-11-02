@@ -35,7 +35,7 @@ L’objectif est de rendre l’étudiant **autonome dans la mise en œuvre et l�
 - Commandes de base `kubectl`, `minikube`
 - Installation et environnement de travail
 
-**TD1 & TD2** : mise en pratique et premiers déploiements sur Minikube.
+**TD1, TD2 & TD3** : mise en pratique et premiers déploiements sur Minikube, exploration du tableau de bord et inspection des ressources avec `kubectl`.
 
 ---
 
@@ -48,7 +48,7 @@ L’objectif est de rendre l’étudiant **autonome dans la mise en œuvre et l�
 - Exposition via Service et Ingress
 - Sécurité réseau avec les NetworkPolicies
 
-**TD3** : exploration du tableau de bord et inspection des ressources avec `kubectl`.
+**TD4** : mise en place du monitoring, Ingress Controller (Traefik), métriques réseau.
 
 ---
 
@@ -58,8 +58,7 @@ L’objectif est de rendre l’étudiant **autonome dans la mise en œuvre et l�
 - Visualisation des ressources et suivi du cluster
 - Monitoring des Pods et métriques système
 - Analyse des logs et scaling automatique (HPA)
-
-**TD4** : mise en place du monitoring, Ingress Controller (Traefik), métriques réseau.
+  **TD5** : Continuous deployment et automatisation par source de vérité GIT.
 
 ---
 
@@ -78,8 +77,8 @@ L’objectif est de rendre l’étudiant **autonome dans la mise en œuvre et l�
 
 ```bash
 # Cloner le dépôt
-git clone https://gitlab.univ.example.com/cours/kubernetes.git
-cd kubernetes
+git clone https://iut-git.unice.fr/pimbert/virtualadvanced.git
+cd virtualadvanced
 
 # Démarrer Minikube
 minikube start --cpus=6 --memory=8g
@@ -95,9 +94,9 @@ kubectl get nodes
 
 - 📘 [CM1 – Découverte de Kubernetes et Minikube](./CM1.md)
 - 📘 [CM2 – YAML, Namespaces et exposition réseau](./CM2.md)
-- 🧪 [TD1 – Installation et configuration](./TD1/)
-- 🧪 [TD2 – Premier déploiement](./TD2/)
-- 🧪 [TD3 – Dashboard et kubectl](./TD3/)
+- 🧪 [TD1 – Installation et configuration](./cm1-td/TD1/)
+- 🧪 [TD2 – Premier déploiement](./cm1-td/TD2/)
+- 🧪 [TD3 – Dashboard et kubectl](./cm1-td/TD3/)
 
 ---
 
