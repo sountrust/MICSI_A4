@@ -70,12 +70,12 @@ Kubernetes fonctionne selon une logique de **réconciliation continue** :
 
 ```mermaid
 flowchart LR
-  A[État désiré (YAML)] -->|kubectl apply| B[API Server]
-  B --> C[(etcd)]
-  C --> D[Controller Manager]
-  D --> E{État réel == État désiré ?}
-  E -- Non --> F[Scheduler + Kubelet créent ou modifient des Pods]
-  E -- Oui --> G[✅ Cluster stable]
+    A["État désiré (YAML)"] -->|kubectl apply| B["API Server"]
+    B --> C["etcd (base clé-valeur)"]
+    C --> D["Controller Manager"]
+    D --> E{"État réel == État désiré ?"}
+    E -->|Non| F["Scheduler + Kubelet créent ou modifient des Pods"]
+    E -->|Oui| G["Cluster stable"]
 ```
 
 ### Les étapes principales
@@ -218,12 +218,12 @@ spec:
 
 ```mermaid
 flowchart LR
-  A[Manifest YAML] --> B[API Server]
-  B --> C[(etcd)]
-  C --> D[Controller Manager]
-  D --> E[Scheduler]
-  E --> F[kubelet (sur le nœud)]
-  F --> G[Conteneur créé]
+    A["Manifest YAML"] --> B["API Server"]
+    B --> C["etcd (base clé-valeur)"]
+    C --> D["Controller Manager"]
+    D --> E["Scheduler"]
+    E --> F["Kubelet (sur le nœud)"]
+    F --> G["Conteneur créé"]
 ```
 
 ### 🔍 Étapes détaillées
