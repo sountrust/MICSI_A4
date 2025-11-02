@@ -94,29 +94,82 @@ flowchart LR
 ## 5. Schéma d'ensemble
 
 ```mermaid
-graph TB
-  subgraph ControlPlane[Control Plane]
-    APIServer[(API Server)] --> ETCD[(etcd)]
-    APIServer --> Controller[Controller Manager]
-    APIServer --> Scheduler[Scheduler]
+flowchart TB
+  %% Définition des styles
+  classDef control fill:#f5f5f5,stroke:#888,stroke-width:1px,color:#000;
+  classDef worker fill:#e9f7ff,stroke:#007acc,stroke-width:1px,color:#000;
+  classDef datastore fill:#fffbe6,stroke:#888,stroke-width:1px,color:#000;
+
+  %% Control Plane
+  subgraph CP["🧠 Control Plane (cp nodes)"]
+    APIServer["kube-apiserver"]:::control
+    ETCD["etcd (base clé-valeur)"]:::datastore
+    Controller["kube-controller-manager"]:::control
+    Scheduler["kube-scheduler"]:::control
+    CloudCtrl["cloud-controller-manager (optionnel)"]:::control
+    ProxyCP["kube-proxy"]:::control
   end
 
-  subgraph Node1[Worker Node 1]
-    Kubelet1[kubelet] --> Pod1[Pod A]
-    KubeProxy1[kube-proxy]
+  %% Relations internes du Control Plane
+  APIServer --> ETCD
+  APIServer --> Controller
+  APIServer --> Scheduler
+  APIServer -.-> ProxyCP
+  CloudCtrl -.-> APIServer
+
+  %% Worker Nodes
+  subgraph W1["Worker Node 1"]
+    Kubelet1["kubelet"]:::worker
+    Proxy1["kube-proxy"]:::worker
+    Containerd1["containerd"]:::worker
+    Pod1a["Pod A"]
+    Pod1b["Pod B"]
+    Kubelet1 --> Containerd1 --> Pod1a
+    Containerd1 --> Pod1b
   end
 
-  subgraph Node2[Worker Node 2]
-    Kubelet2[kubelet] --> Pod2[Pod B]
-    KubeProxy2[kube-proxy]
+  subgraph W2["Worker Node 2"]
+    Kubelet2["kubelet"]:::worker
+    Proxy2["kube-proxy"]:::worker
+    Containerd2["containerd"]:::worker
+    Pod2a["Pod C"]
+    Pod2b["Pod D"]
+    Kubelet2 --> Containerd2 --> Pod2a
+    Containerd2 --> Pod2b
   end
 
-  Controller -->|Ordres de création| Kubelet1
-  Controller -->|Ordres de création| Kubelet2
-  Kubelet1 -->|Statut| APIServer
-  Kubelet2 -->|Statut| APIServer
+  subgraph W3["Worker Node 3"]
+    Kubelet3["kubelet"]:::worker
+    Proxy3["kube-proxy"]:::worker
+    Containerd3["containerd"]:::worker
+    Pod3a["Pod E"]
+    Pod3b["Pod F"]
+    Kubelet3 --> Containerd3 --> Pod3a
+    Containerd3 --> Pod3b
+  end
 
-  KubeProxy1 -->|Trafic réseau| KubeProxy2
+  %% Communications via API Server
+  APIServer --> Kubelet1
+  APIServer --> Kubelet2
+  APIServer --> Kubelet3
+  APIServer --> Proxy1
+  APIServer --> Proxy2
+  APIServer --> Proxy3
+
+  %% Retour d’état vers l’API
+  Kubelet1 --> APIServer
+  Kubelet2 --> APIServer
+  Kubelet3 --> APIServer
+
+  %% Communication réseau inter-nœuds
+  Proxy1 -. Trafic réseau .-> Proxy2
+  Proxy1 -. Trafic réseau .-> Proxy3
+  Proxy2 -. Trafic réseau .-> Proxy3
+
+  %% Légende
+  class CP,ETCD,Controller,Scheduler,CloudCtrl,ProxyCP control;
+  class W1,W2,W3,Kubelet1,Kubelet2,Kubelet3,Proxy1,Proxy2,Proxy3,Containerd1,Containerd2,Containerd3 worker;
+  class ETCD datastore;
 ```
 
 ---
