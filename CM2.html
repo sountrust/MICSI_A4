@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CM2 – Partie 1 : Genèse et architecture interne de Kubernetes</title>
+
+    <!-- ✅ Style global -->
+    <style>
+      body {
+        font-family: "Segoe UI", Roboto, sans-serif;
+        line-height: 1.6;
+        color: #222;
+        max-width: 1000px;
+        margin: auto;
+        padding: 40px;
+        background: #f7f9fc;
+      }
+      h1 {
+        color: #0d47a1;
+        border-bottom: 4px solid #1565c0;
+        padding-bottom: 6px;
+      }
+      h2 {
+        color: #1565c0;
+        margin-top: 30px;
+      }
+      h3 {
+        color: #1e88e5;
+        margin-top: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0 20px;
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      th,
+      td {
+        padding: 10px;
+        border: 1px solid #ccc;
+      }
+      thead {
+        background: #e3f2fd;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 10px;
+        border-radius: 6px;
+        overflow-x: auto;
+      }
+      code {
+        background: #f8f8f8;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-family: Consolas, monospace;
+      }
+      .note {
+        background: #e3f2fd;
+        border-left: 5px solid #1976d2;
+        padding: 10px;
+        margin: 15px 0;
+      }
+      .warning {
+        background: #fffde7;
+        border-left: 5px solid #fbc02d;
+        padding: 10px;
+        margin: 15px 0;
+      }
+      .success {
+        background: #e8f5e9;
+        border-left: 5px solid #43a047;
+        padding: 10px;
+        margin: 15px 0;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid #ccc;
+        margin: 30px 0;
+      }
+    </style>
+
+    <!-- ✅ Mermaid intégré -->
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+    </script>
+  </head>
+
+  <body>
+    <h1>CM2 – Partie 1 : Genèse et architecture interne de Kubernetes</h1>
+
+    <h2>1️⃣ – Origine et philosophie de Kubernetes</h2>
+    <p>
+      Kubernetes est né au sein de <strong>Google</strong> en 2014, inspiré d’un
+      outil interne appelé <strong>Borg</strong>. Borg gérait des millions de
+      conteneurs dans l’infrastructure Google. Kubernetes reprend ces principes
+      tout en les ouvrant à l’open-source.
+    </p>
+
+    <div class="note">
+      Kubernetes n’exécute pas directement vos applications — il orchestre leur
+      exécution sur un ensemble de machines.
+    </div>
+
+    <h3>Principes fondateurs</h3>
+    <ol>
+      <li>
+        <strong>Déclaratif</strong> : on décrit l’état souhaité, Kubernetes
+        s’assure qu’il soit atteint.
+      </li>
+      <li>
+        <strong>Automatisé</strong> : planification, récupération et
+        redéploiement sans intervention humaine.
+      </li>
+      <li>
+        <strong>Distribué</strong> : composé de plusieurs services coopérants
+        via des APIs.
+      </li>
+      <li>
+        <strong>Extensible</strong> : chaque composant peut être remplacé ou
+        enrichi par des contrôleurs personnalisés.
+      </li>
+    </ol>
+
+    <hr />
+
+    <h2>2️⃣ – Le cluster Kubernetes</h2>
+    <p>Un cluster Kubernetes est constitué de deux grandes parties :</p>
+
+    <h3>🧠 Le Control Plane</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Composant</th>
+          <th>Rôle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>API Server</strong></td>
+          <td>
+            Point d’entrée du cluster. Reçoit toutes les requêtes
+            <code>kubectl</code> ou des contrôleurs.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>etcd</strong></td>
+          <td>
+            Base de données clé/valeur stockant l’état souhaité du cluster.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Controller Manager</strong></td>
+          <td>
+            Compare l’état réel et l’état désiré, et agit pour les aligner.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Scheduler</strong></td>
+          <td>
+            Détermine sur quel nœud exécuter chaque Pod selon les ressources.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Cloud Controller</strong></td>
+          <td>Intègre Kubernetes avec les APIs du fournisseur cloud.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>⚙️ Les Worker Nodes</h3>
+    <table>
+      <thead style="background: #e8f5e9">
+        <tr>
+          <th>Composant</th>
+          <th>Rôle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>kubelet</strong></td>
+          <td>
+            Agent local exécutant les Pods sur la machine selon les ordres du
+            Control Plane.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>container runtime</strong></td>
+          <td>Exécute les conteneurs (Docker, containerd, CRI-O...)</td>
+        </tr>
+        <tr>
+          <td><strong>kube-proxy</strong></td>
+          <td>Gère le routage réseau entre Pods et Services.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr />
+
+    <h2>3️⃣ – Communication interne et API</h2>
+    <p>
+      Toutes les interactions passent par l’<strong>API Server</strong>, un
+      serveur HTTP/JSON :
+    </p>
+
+    <ul>
+      <li><code>kubectl get pods</code> → <em>GET /api/v1/pods</em></li>
+      <li>
+        <code>kubectl apply -f deploy.yml</code> →
+        <em>POST /apis/apps/v1/deployments</em>
+      </li>
+    </ul>
+
+    <div class="warning">
+      💡 Les autres composants (Controller, Scheduler, Kubelet) ne communiquent
+      qu’avec l’API Server — jamais directement entre eux.
+    </div>
+
+    <hr />
+
+    <h2>4️⃣ – Le cycle de réconciliation</h2>
+    <p>
+      Kubernetes fonctionne selon une logique de
+      <strong>réconciliation continue</strong> :
+    </p>
+
+    <pre class="mermaid">
+    flowchart LR
+      subgraph Dev["Developpeur"]
+        A["Manifeste YAML : etat desire"]
+      end
+      A -->|"kubectl apply"| B["API Server"]
+      B --> C["etcd (etat desire)"]
+      B --> D["Controllers"]
+      D --> E{"Etat reel conforme ?"}
+      E -- "Non" --> F["Creer / Remplacer / Scaler Pods"]
+      F --> G["Kubelet sur les noeuds"]
+      G --> H["Containers (containerd / CRI-O)"]
+      H --> I["Rapport d'etat"]
+      I --> D
+      E -- "Oui" --> J["Convergence atteinte"]
+    </pre>
+
+    <h3>Étapes principales</h3>
+    <ol>
+      <li>L’utilisateur applique un manifest YAML (ex : Deployment).</li>
+      <li>
+        L’API Server valide et stocke la ressource dans <code>etcd</code>.
+      </li>
+      <li>Le Controller Manager détecte qu’aucun Pod n’existe encore.</li>
+      <li>Le Scheduler assigne les Pods à des nœuds.</li>
+      <li>Les kubelets créent les conteneurs correspondants.</li>
+      <li>Le cluster est stable lorsque l’état réel correspond au YAML.</li>
+    </ol>
+
+    <div class="success">
+      🔁 Kubernetes s’auto-répare dès qu’un écart est détecté (self-healing).
+    </div>
+
+    <hr />
+
+    <h2>5️⃣ – Schéma d’ensemble</h2>
+
+    <!-- prettier-ignore -->
+    <pre class="mermaid">
+    flowchart TB
+      subgraph CP["Control Plane"]
+        API["API Server"]
+        ET["etcd"]
+        CTRL["Controller Manager"]
+        SCH["Scheduler"]
+        CLD["Cloud Controller"]
+      end
+    
+      subgraph W1["Worker Node 1"]
+        K1["kubelet"]
+        C1["containerd"]
+        P1a["Pod A"]
+        P1b["Pod B"]
+      end
+    
+      subgraph W2["Worker Node 2"]
+        K2["kubelet"]
+        C2["containerd"]
+        P2a["Pod C"]
+        P2b["Pod D"]
+      end
+    
+      API --> ET
+      API --> CTRL
+      API --> SCH
+      API --> K1
+      API --> K2
+    
+      K1 --> C1 --> P1a
+      C1 --> P1b
+      K2 --> C2 --> P2a
+      C2 --> P2b
+    
+      K1 -. "etat" .-> API
+      K2 -. "etat" .-> API
+    </pre>
+
+    <hr />
+
+    <h2>6️⃣ – Points à retenir</h2>
+    <ul>
+      <li>
+        Kubernetes est un <strong>système distribué</strong> basé sur une API
+        unique.
+      </li>
+      <li>
+        Le <strong>Control Plane</strong> décide, les
+        <strong>nœuds</strong> exécutent.
+      </li>
+      <li>
+        <strong>etcd</strong> stocke l’état du cluster (source de vérité).
+      </li>
+      <li>
+        Le <strong>Scheduler</strong> et le
+        <strong>Controller Manager</strong> assurent la cohérence.
+      </li>
+      <li>
+        Le <strong>Kubelet</strong> relie les manifests YAML à la réalité des
+        conteneurs.
+      </li>
+    </ul>
+
+    <div class="note">
+      🧩 Prochaine partie : Le modèle déclaratif et la structure des manifests
+      YAML.
+    </div>
+    <hr />
+    <h1>CM2 – Partie 2 : Le modèle déclaratif et les manifests YAML</h1>
+
+    <h2>1️⃣ – Le modèle déclaratif de Kubernetes</h2>
+    <p>
+      Kubernetes repose sur une approche <strong>déclarative</strong> : on
+      décrit l’état final souhaité du système, sans préciser les étapes
+      d’exécution.
+    </p>
+
+    <div class="note">
+      💡 On déclare <em>ce que l’on veut obtenir</em>, pas
+      <em>comment l’obtenir</em>.
+    </div>
+
+    <h3>⚙️ Exemple conceptuel</h3>
+    <pre><code>replicas: 3</code></pre>
+    <p>
+      Cela indique simplement à Kubernetes : « Assure-toi qu’il y ait toujours
+      trois réplicas actifs. » Si un conteneur tombe, Kubernetes en relance un
+      automatiquement.
+    </p>
+
+    <div class="success">
+      ✅ Le cluster devient auto-réparant et auto-adaptatif (scaling, update,
+      rollback).
+    </div>
+
+    <hr />
+
+    <h2>2️⃣ – Le rôle du YAML</h2>
+    <p>
+      Le YAML est la grammaire déclarative utilisée pour décrire les ressources
+      Kubernetes (les manifests).
+    </p>
+
+    <h3>🧩 Structure de base</h3>
+    <pre><code>apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  MODE: "production"
+  TIMEOUT: "30"
+</code></pre>
+
+    <h3>📋 Sections fondamentales</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Clé</th>
+          <th>Rôle</th>
+          <th>Exemple</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>apiVersion</code></td>
+          <td>Version de l’API utilisée</td>
+          <td><code>v1</code>, <code>apps/v1</code></td>
+        </tr>
+        <tr>
+          <td><code>kind</code></td>
+          <td>Type d’objet</td>
+          <td><code>Pod</code>, <code>Service</code></td>
+        </tr>
+        <tr>
+          <td><code>metadata</code></td>
+          <td>Identifiants (nom, labels, namespace)</td>
+          <td><code>name: webapp</code></td>
+        </tr>
+        <tr>
+          <td><code>spec</code></td>
+          <td>Spécifications fonctionnelles</td>
+          <td><code>replicas</code>, <code>containers</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr />
+
+    <h2>3️⃣ – Du manifest au cluster : la chaîne de traitement</h2>
+
+    <pre class="mermaid">
+flowchart LR
+  A["Manifest YAML"] --> B["API Server"]
+  B --> C["etcd (base clé-valeur)"]
+  C --> D["Controller Manager"]
+  D --> E["Scheduler"]
+  E --> F["Kubelet (sur le nœud)"]
+  F --> G["Conteneur créé"]
+    </pre>
+
+    <ol>
+      <li>
+        <code>kubectl apply -f fichier.yaml</code> → envoi du manifest à l’API
+        Server.
+      </li>
+      <li>Validation et stockage dans <strong>etcd</strong>.</li>
+      <li>
+        <strong>Controller Manager</strong> crée ou met à jour les objets.
+      </li>
+      <li><strong>Scheduler</strong> assigne les Pods aux nœuds.</li>
+      <li>
+        <strong>Kubelet</strong> crée les conteneurs et signale leur état.
+      </li>
+    </ol>
+
+    <div class="warning">
+      ⚙️ Kubernetes agit tant que l’état réel diffère du manifest : c’est la
+      <em>réconciliation continue</em>.
+    </div>
+
+    <hr />
+
+    <h2>4️⃣ – <code>kubectl create</code> vs <code>kubectl apply</code></h2>
+    <h3>✳️ <code>kubectl create</code></h3>
+    <pre><code>kubectl create deployment web --image=nginx</code></pre>
+    <p>
+      Crée un objet et l’enregistre dans <code>etcd</code>. Même si la commande
+      semble impérative, Kubernetes la traduit en une
+      <strong>déclaration d’état</strong>.
+    </p>
+
+    <h3>🧩 <code>kubectl apply</code></h3>
+    <pre><code>kubectl apply -f deployment.yaml</code></pre>
+    <p>
+      Applique ou met à jour un manifest existant : Kubernetes modifie
+      uniquement ce qui est nécessaire pour atteindre l’état souhaité.
+    </p>
+
+    <table>
+      <thead style="background: #f1f8e9">
+        <tr>
+          <th>Commande</th>
+          <th>Nature</th>
+          <th>Usage</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>create</code></td>
+          <td>Déclaratif instantané</td>
+          <td>Création rapide</td>
+        </tr>
+        <tr>
+          <td><code>apply</code></td>
+          <td>Déclaratif continu</td>
+          <td>Mise à jour automatique</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr />
+
+    <h2>5️⃣ – Typologie des objets Kubernetes</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Catégorie</th>
+          <th>Objets</th>
+          <th>Rôle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Workload</td>
+          <td>Pod, ReplicaSet, Deployment</td>
+          <td>Déploient et maintiennent les conteneurs</td>
+        </tr>
+        <tr>
+          <td>Service & Réseau</td>
+          <td>Service, Ingress</td>
+          <td>Assurent la connectivité</td>
+        </tr>
+        <tr>
+          <td>Configuration</td>
+          <td>ConfigMap, Secret</td>
+          <td>Fournissent les paramètres</td>
+        </tr>
+        <tr>
+          <td>Infrastructure</td>
+          <td>Node, Namespace, PV</td>
+          <td>Décrivent les ressources physiques/logiques</td>
+        </tr>
+        <tr>
+          <td>Sécurité</td>
+          <td>RBAC, NetworkPolicy</td>
+          <td>Gèrent les accès et l’isolation</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Exemple : un Deployment complet</h3>
+    <pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deploy
+  labels:
+    app: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+</code></pre>
+
+    <hr />
+
+    <h2>6️⃣ – Manifests multi-documents</h2>
+    <pre><code>---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.25
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+  namespace: demo
+spec:
+  selector:
+    app: web
+  ports:
+    - port: 80
+      targetPort: 80
+</code></pre>
+    <p>
+      Déploiement complet en une commande :<br />
+      <code>kubectl apply -f stack-demo.yaml</code>
+    </p>
+
+    <hr />
+
+    <h2>7️⃣ – Vérification et inspection</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Action</th>
+          <th>Commande</th>
+          <th>Résultat</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Lister les ressources</td>
+          <td><code>kubectl get all -n demo</code></td>
+          <td>Tous les objets du namespace</td>
+        </tr>
+        <tr>
+          <td>Détails</td>
+          <td><code>kubectl describe deployment web -n demo</code></td>
+          <td>Informations et événements</td>
+        </tr>
+        <tr>
+          <td>YAML actuel</td>
+          <td><code>kubectl get deploy web -o yaml</code></td>
+          <td>État déclaré du manifest</td>
+        </tr>
+        <tr>
+          <td>Pods</td>
+          <td><code>kubectl get pods -o wide</code></td>
+          <td>IPs, nœuds, statuts</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr />
+
+    <h2>8️⃣ – Points pédagogiques clés</h2>
+    <ul>
+      <li>Kubernetes est <strong>piloté par des manifests</strong> YAML.</li>
+      <li>L’utilisateur ne manipule pas les conteneurs mais les objets API.</li>
+      <li>
+        Le <strong>Control Plane</strong> maintient la cohérence entre état
+        désiré et réel.
+      </li>
+      <li>
+        Le YAML est la <strong>grammaire du dialogue</strong> humain/cluster.
+      </li>
+      <li>Même <code>kubectl create</code> reste déclaratif.</li>
+    </ul>
+
+    <div class="note">
+      🧩 Prochaine partie : Isolation logique, exposition réseau et structure
+      applicative (Namespaces, Services, Ingress).
+    </div>
+    <hr />
+    <h1>
+      CM2 – Partie 3 : Isolation, organisation et exposition dans Kubernetes
+    </h1>
+
+    <h2>1️⃣ – Introduction : du manifest à la structure du cluster</h2>
+    <p>
+      Après avoir découvert comment décrire les objets Kubernetes
+      (<code>Pods</code>, <code>Deployments</code>, <code>Services</code>) via
+      YAML, nous abordons maintenant la
+      <strong>structure logique et réseau</strong> du cluster.
+    </p>
+
+    <p>
+      Kubernetes est un système <strong>déclaratif et auto-régulé</strong> : le
+      Control Plane s'assure que l'état du cluster correspond en permanence à
+      l'état déclaré. Cette réconciliation s'applique non seulement aux objets
+      applicatifs, mais aussi à la façon dont les applications sont organisées,
+      exposées et isolées.
+    </p>
+
+    <ul>
+      <li><strong>organise</strong> les ressources avec les namespaces ;</li>
+      <li>
+        <strong>connecte</strong> les composants via les services internes ;
+      </li>
+      <li>
+        <strong>expose</strong> les applications vers l’extérieur avec les
+        ingress ;
+      </li>
+      <li><strong>protège</strong> le trafic avec les politiques réseau.</li>
+    </ul>
+
+    <hr />
+
+    <h2>2️⃣ – Les Namespaces : l'isolation logique du cluster</h2>
+
+    <h3>2.1. Rôle fondamental</h3>
+    <p>
+      Un <strong>namespace</strong> est un espace logique d'isolation à
+      l'intérieur d'un cluster. Il sert à
+      <strong>segmenter et organiser</strong> les ressources selon des domaines
+      fonctionnels, des équipes, ou des applications.
+    </p>
+
+    <div class="note">
+      ✨ Un cluster Kubernetes = une ville partagée.<br />
+      Les namespaces = les quartiers isolés avec leurs propres règles, habitants
+      et ressources.
+    </div>
+
+    <h3>2.2. Bonnes pratiques d'organisation</h3>
+    <ul>
+      <li>
+        <strong>Isoler les applications</strong> : <code>frontend</code>,
+        <code>backend</code>, <code>database</code>, <code>monitoring</code>.
+      </li>
+      <li>
+        <strong>Isoler les équipes ou clients</strong> : <code>team-a</code>,
+        <code>client-x</code>, <code>client-y</code>.
+      </li>
+      <li>
+        <strong>Gérer la sécurité</strong> : quotas, limites CPU/mémoire,
+        secrets, rôles RBAC.
+      </li>
+    </ul>
+
+    <p>
+      Les environnements <strong>dev/staging/prod</strong> devraient reposer sur
+      des <strong>clusters distincts</strong> pour éviter les fuites de sécurité
+      et garantir la résilience.
+    </p>
+
+    <h3>2.3. Commandes pratiques</h3>
+    <pre><code>kubectl get ns
+kubectl create ns analytics
+kubectl config set-context --current --namespace=analytics
+kubectl get all -n analytics
+</code></pre>
+
+    <h3>2.4. Namespace par défaut et objets globaux</h3>
+    <p>
+      Si aucun namespace n'est spécifié, Kubernetes crée l'objet dans le
+      namespace <strong>default</strong>.<br />
+      Certains objets sont globaux : <code>Node</code>, <code>Namespace</code>,
+      <code>ClusterRole</code>, <code>PersistentVolume</code>.
+    </p>
+
+    <h3>2.5. Discussion critique : Namespaces, Zero Trust et architecture</h3>
+    <ul>
+      <li>
+        Kubernetes est <strong>une plateforme de production</strong>, pas un
+        outil de sandbox.
+      </li>
+      <li>
+        Les environnements séparés reposent sur des
+        <strong>clusters distincts</strong>, pas sur des namespaces.
+      </li>
+    </ul>
+
+    <h4>🔒 Rôle sécuritaire</h4>
+    <ul>
+      <li>
+        Limite la surface d’attaque en cloisonnant les ressources et les accès.
+      </li>
+      <li>
+        Les communications inter-namespaces peuvent être restreintes par des
+        <code>NetworkPolicies</code>.
+      </li>
+      <li>
+        En approche <strong>Zero Trust</strong>, rien n’est implicitement
+        autorisé.
+      </li>
+    </ul>
+
+    <h4>🕵️‍♂️ Schémas d’isolation possibles</h4>
+    <ol>
+      <li><strong>Namespace unique</strong> : simple mais exposé.</li>
+      <li>
+        <strong>Multi-namespaces applicatifs</strong> : front/back/data séparés.
+      </li>
+      <li><strong>Multi-clusters</strong> : isolation totale (prod).</li>
+    </ol>
+
+    <hr />
+
+    <h2>3️⃣ – Les Services : connecter et stabiliser le réseau interne</h2>
+
+    <p>
+      Les Pods sont éphémères : leurs IP changent à chaque recréation. Les
+      <strong>Services</strong> fournissent une adresse stable et un
+      <strong>mécanisme de découverte interne (DNS)</strong>.
+    </p>
+
+    <h3>3.2. Types de Services</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Portée</th>
+          <th>Rôle</th>
+          <th>Cas d’usage</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>ClusterIP</code></td>
+          <td>Interne</td>
+          <td>Point d’accès interne</td>
+          <td>Communication entre microservices</td>
+        </tr>
+        <tr>
+          <td><code>NodePort</code></td>
+          <td>Interne + externe</td>
+          <td>Port fixe sur chaque nœud</td>
+          <td>Démonstrations locales</td>
+        </tr>
+        <tr>
+          <td><code>LoadBalancer</code></td>
+          <td>Externe</td>
+          <td>Exposition publique</td>
+          <td>Production</td>
+        </tr>
+        <tr>
+          <td><code>ExternalName</code></td>
+          <td>DNS externe</td>
+          <td>Redirection</td>
+          <td>API ou base distante</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3.3. Exemple YAML</h3>
+    <pre><code>apiVersion: v1
+kind: Service
+metadata:
+  name: api-svc
+  namespace: backend
+spec:
+  selector:
+    app: api
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP
+</code></pre>
+
+    <p>
+      Chaque Service obtient un nom DNS automatique :
+      <code>api-svc.backend.svc.cluster.local</code>
+    </p>
+
+    <div class="note">
+      Le DNS interne est géré par <strong>CoreDNS</strong> (Pod dans
+      <code>kube-system</code>).
+    </div>
+
+    <hr />
+
+    <h2>4️⃣ – L’Ingress : exposer les applications vers l’extérieur</h2>
+    <p>
+      Les Services <code>NodePort</code> ou <code>LoadBalancer</code> sont
+      utiles mais limités. L’objet <strong>Ingress</strong> décrit des règles de
+      routage HTTP(S) gérées par un
+      <strong>Ingress Controller</strong> (Traefik, Nginx, Istio...).
+    </p>
+
+    <h3>4.2. Exemple YAML</h3>
+    <pre><code>apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-ingress
+  namespace: frontend
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - host: web.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-svc
+                port:
+                  number: 80
+</code></pre>
+
+    <h3>4.3. Schéma logique</h3>
+    <pre class="mermaid">
+graph LR
+  User["Navigateur web"] --> Ingress["Ingress Controller (Traefik/Nginx)"]
+  Ingress --> Service["Service ClusterIP"]
+  Service --> Pod1["Pod web-1"]
+  Service --> Pod2["Pod web-2"]
+    </pre>
+
+    <div class="warning">
+      L’Ingress agit comme un <strong>proxy inverse HTTP/TLS</strong>,
+      appliquant les règles de routage et les certificats.
+    </div>
+
+    <hr />
+
+    <h2>5️⃣ – L’Egress et les NetworkPolicies : contrôler le trafic sortant</h2>
+    <p>
+      Par défaut, les Pods peuvent communiquer librement. Il faut donc
+      <strong>restreindre le trafic</strong> et appliquer le principe du
+      <em>moindre privilège</em>.
+    </p>
+
+    <h3>5.2. Exemple de NetworkPolicy</h3>
+    <pre><code>apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: restrict-egress
+  namespace: backend
+spec:
+  podSelector:
+    matchLabels:
+      app: api
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/8
+</code></pre>
+
+    <p>
+      Cette politique interdit tout trafic sortant sauf vers le réseau interne
+      <code>10.0.0.0/8</code>.
+    </p>
+
+    <ul>
+      <li><code>Ingress</code> = flux entrant vers les Pods.</li>
+      <li><code>Egress</code> = flux sortant des Pods.</li>
+      <li><code>NetworkPolicy</code> = pare-feu logique au niveau du Pod.</li>
+      <li>
+        <strong>Zero Trust</strong> : tout est fermé par défaut, ouvert par
+        exception.
+      </li>
+    </ul>
+
+    <hr />
+
+    <h2>6️⃣ – Schéma récapitulatif</h2>
+    <pre class="mermaid">
+graph TD
+  subgraph Cluster["Cluster Kubernetes"]
+    subgraph NamespaceA["Namespace: frontend"]
+      I["Ingress Controller"]
+      S1["Service web-svc"]
+      P1["Pod web-1"]
+      P2["Pod web-2"]
+    end
+    subgraph NamespaceB["Namespace: backend"]
+      S2["Service api-svc"]
+      P3["Pod api-1"]
+      P4["Pod api-2"]
+    end
+  end
+  User["Navigateur"] --> I --> S1 --> P1 & P2
+  P1 --> S2 --> P3
+  P3 -.->|"Egress contrôlé"| ExternalDB["Base de données externe (SaaS)"]
+    </pre>
+
+    <hr />
+
+    <h2>7️⃣ – Conclusion de la Partie 3</h2>
+    <ul>
+      <li>
+        Les <strong>namespaces</strong> isolent la logique et la sécurité du
+        cluster.
+      </li>
+      <li>
+        Les <strong>services</strong> stabilisent les connexions internes.
+      </li>
+      <li>
+        Les <strong>ingress</strong> exposent les apps via un contrôleur
+        HTTP/TLS.
+      </li>
+      <li>
+        Les <strong>network policies</strong> contrôlent finement les flux.
+      </li>
+    </ul>
+
+    <div class="success">
+      Ensemble, ces mécanismes composent une infrastructure segmentée,
+      déclarative et sécurisée.
+    </div>
+
+    <div class="note">
+      🧩 Le TD4 prolongera cette approche avec la mise en place concrète de
+      <strong>Traefik (Ingress Controller)</strong>, l’exploration du réseau
+      inter-pods, et l’observation via <strong>Lens</strong> et
+      <strong>Prometheus</strong>.
+    </div>
+  </body>
+</html>

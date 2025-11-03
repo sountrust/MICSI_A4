@@ -1,0 +1,647 @@
+<style>
+  body {
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    color: #222;
+    background: #fff;
+    line-height: 1.6;
+  }
+  section {
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 1.5em 2em;
+    margin: 1em 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  h2 {
+    color: #0d47a1;
+    border-left: 5px solid #1976d2;
+    padding-left: 10px;
+  }
+  h3 { color: #1565c0; margin-top: 1.2em; }
+  h4 { color: #0288d1; }
+  ul { margin-left: 1.3em; }
+  code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; color: #d6336c; }
+  pre { background: #272822; color: #f8f8f2; padding: 10px; border-radius: 6px; overflow-x: auto; }
+  table {
+    border-collapse: collapse; width: 100%; margin: 1em 0;
+  }
+  th, td { border: 1px solid #ddd; padding: 8px; }
+  th { background-color: #1976d2; color: white; }
+  tr:nth-child(even) { background-color: #f9f9f9; }
+  .callout {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 15px; border-radius: 8px; margin: 1em 0;
+  }
+  .callout.warn { background: #fff8e1; border-left: 5px solid #ff9800; }
+  .callout.info { background: #e3f2fd; border-left: 5px solid #2196f3; }
+  .callout.good { background: #e8f5e9; border-left: 5px solid #4caf50; }
+  .small { color: #555; font-size: 0.9em; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: "neutral" });</script>
+
+<section id="sec-1" class="section">
+  <h2>1️⃣ – Du monolithe aux microservices</h2>
+
+  <blockquote>
+    <strong>Une application monolithique</strong> regroupe toutes les fonctionnalités dans un seul programme.
+  </blockquote>
+
+  <h3>⚙️ Caractéristiques</h3>
+  <ul>
+    <li>Une <strong>base de code unique</strong>, un seul processus, un seul cycle de déploiement.</li>
+    <li>Simplicité initiale ✅ mais forte <strong>dépendance interne</strong> ❌ entre les modules.</li>
+    <li>Tout changement ou panne impacte <strong>l’ensemble du système</strong>.</li>
+  </ul>
+
+  <p>📚 <strong>Lien recommandé :</strong>
+    <a href="https://cloud.google.com/kubernetes-engine/kubernetes-comic/" target="_blank" rel="noopener noreferrer">
+      BD Kubernetes par Google Cloud
+    </a>
+  </p>
+
+  <h3>🕰️ Historique et contexte d’évolution</h3>
+  <ul>
+    <li>Architecture <strong>client-serveur</strong></li>
+    <li>Mises à jour nécessitant l’arrêt complet du service 🛑</li>
+    <li>Scalabilité <strong>verticale</strong> (plus de matériel)</li>
+  </ul>
+
+  <h3>🚀 Les causes de l’évolution</h3>
+  <ul>
+    <li><strong>Complexification</strong> des systèmes</li>
+    <li><strong>Émergence du web</strong> et besoin d’intégration</li>
+    <li>Nouveaux modèles <strong>DevOps / CI/CD</strong></li>
+  </ul>
+
+  <h3>🌐 Les premières interconnexions</h3>
+  <table>
+    <thead><tr><th>Technologie</th><th>Année</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SOAP</strong></td><td>1999</td><td>Web Services XML (interopérabilité initiale)</td></tr>
+      <tr><td><strong>REST</strong></td><td>2000</td><td>Communication simple HTTP (JSON / XML)</td></tr>
+      <tr><td><strong>gRPC</strong></td><td>2015</td><td>Protocole binaire performant basé sur HTTP/2</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout info">💬 Ces standards ont permis la communication entre modules indépendants, amorçant la transition vers les microservices.</div>
+
+  <h3>🔍 Qu’est-ce qu’un microservice ?</h3>
+  <ul>
+    <li>Implémente une fonction métier unique (ex : facturation, login…)</li>
+    <li>S’exécute <strong>indépendamment</strong></li>
+    <li>Possède son propre <strong>cycle de vie</strong></li>
+  </ul>
+
+  <h3>🌉 Communication</h3>
+  <ul>
+    <li>Les microservices échangent via des APIs légères :</li>
+    <ul>
+      <li>la <strong>modularité</strong> du code 🧠</li>
+      <li>la <strong>tolérance aux pannes</strong> ⚡</li>
+      <li>la <strong>scalabilité horizontale</strong> 📈</li>
+    </ul>
+  </ul>
+
+  <div class="callout warn">
+    ⚠️ Cette liberté ajoute une <strong>complexité d’infrastructure</strong> : réseau, monitoring, orchestration…
+  </div>
+
+  <h3>🐳 Microservice vs Conteneur</h3>
+  <table>
+    <thead><tr><th>❌ Mythe</th><th>✔️ Réalité</th></tr></thead>
+    <tbody>
+      <tr><td>Un microservice = un conteneur</td>
+      <td>Le microservice est une idée logicielle, le conteneur est un environnement d’exécution.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout good">
+    <strong>Microservice</strong> → concept fonctionnel<br>
+    <strong>Conteneur</strong> → mécanisme technique
+  </div>
+
+  <h3>🚢 Pourquoi la conteneurisation est essentielle</h3>
+  <ul>
+    <li>Environnement portable, standardisé, isolé</li>
+    <li>Remplacement plutôt que modification</li>
+    <li>Interopérabilité multi-plateforme</li>
+    <li>Déploiement simplifié et résilient</li>
+  </ul>
+
+  <div class="callout info">💡 Ces propriétés — immutabilité et interopérabilité — sont la base du cloud-native orchestré par Kubernetes.</div>
+
+  <h3>⚠️ Limites du modèle monolithique</h3>
+  <ul>
+    <li>Difficulté d’évolution et de correction</li>
+    <li>Scalabilité verticale uniquement</li>
+    <li>Déploiement lent et risqué</li>
+    <li>Couplage fort entre équipes et technologies</li>
+  </ul>
+
+  <pre><code>java -jar application-complete.jar</code></pre>
+  <p>🧱 Un seul binaire contenant API, UI, logique métier et données.</p>
+
+  <h3>🧩 Vers la modularité : l’idée des microservices</h3>
+  <ul>
+    <li>Chaque service = code + dépendances + base de données</li>
+    <li>Communication via API (HTTP, gRPC, message bus)</li>
+    <li>Scalabilité horizontale ciblée</li>
+    <li>CI/CD facilité 🎯</li>
+  </ul>
+
+  <h3>🧠 Vue architecturale</h3>
+  <table>
+    <thead><tr><th>Aspect</th><th>🧱 Monolithe</th><th>🧩 Microservices</th></tr></thead>
+    <tbody>
+      <tr><td>Couplage</td><td>Fort 🔗</td><td>Faible 🔓</td></tr>
+      <tr><td>Déploiement</td><td>Unique</td><td>Indépendant</td></tr>
+      <tr><td>Scalabilité</td><td>Verticale</td><td>Horizontale</td></tr>
+      <tr><td>Résilience</td><td>Panne globale</td><td>Isolement des pannes</td></tr>
+      <tr><td>Complexité réseau</td><td>Faible</td><td>Élevée ⚙️</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout info">👉 Les microservices déplacent la complexité du code vers l’infrastructure.</div>
+
+  <h3>💡 Exemple visuel</h3>
+  <div class="mermaid">
+    graph LR
+      A[Application monolithique unique] --> B[Modules fortement liés]
+      B --> C[Maintenance difficile]
+      A -.→ D[Transition microservices]
+      D --> E[Services indépendants]
+      E --> F[API REST/gRPC]
+  </div>
+
+  <h3>🧰 Problème nouveau : exécution des services</h3>
+  <ul>
+    <li>Isolation fiable 🧳</li>
+    <li>Communication inter-services 🌐</li>
+    <li>Mise à jour sans perturbation ♻️</li>
+  </ul>
+
+  <div class="mermaid">
+    graph TD
+      A[Microservice A] -->|API| B[Microservice B]
+      B -->|Message Queue| C[Microservice C]
+      C --> D[Base de données]
+  </div>
+
+  <p>➡️ Cela demande un mécanisme d’isolation et de gestion : <strong>virtualisation</strong> 💻 + <strong>conteneurisation</strong> 🧱</p>
+
+  <pre><code># Monolithe initial
+java -jar monolith.jar
+
+# Microservice isolé
+python3 -m http.server 8080</code></pre>
+
+  <p>➡️ Ce besoin mènera naturellement vers la <strong>virtualisation</strong> et la <strong>conteneurisation</strong>.</p>
+</section>
+  <h2>2️⃣ – Virtualisation : l’isolation matérielle</h2>
+
+  <p>
+    La virtualisation permet d’exécuter plusieurs environnements sur une même
+    machine physique.
+  </p>
+
+  <h3>🔍 Définition</h3>
+  <p>
+    La virtualisation crée plusieurs <strong>machines virtuelles (VM)</strong> à
+    partir de ressources physiques :
+  </p>
+  <ul>
+    <li>
+      Chaque VM possède son propre <strong>OS</strong>, mémoire, stockage,
+      réseau.
+    </li>
+    <li>Un <strong>hyperviseur</strong> gère la répartition des ressources.</li>
+  </ul>
+
+  <h3>🧩 Types d’hyperviseurs</h3>
+
+  <h4>Type 1 — Bare Metal</h4>
+  <ul>
+    <li>Fonctionne <strong>directement sur le matériel</strong>.</li>
+    <li>Haute performance et fiabilité.</li>
+    <li>Utilisé dans les <strong>data centers</strong>.</li>
+  </ul>
+  <p class="small">Exemples : VMware ESXi, Hyper-V, KVM, Xen.</p>
+
+  <h4>Type 2 — Hébergé</h4>
+  <ul>
+    <li>Fonctionne <strong>au-dessus d’un OS hôte</strong>.</li>
+    <li>Simplicité d’installation.</li>
+    <li>Idéal pour <strong>tests</strong> ou postes de travail.</li>
+  </ul>
+  <p class="small">Exemples : VirtualBox, VMware Workstation, Parallels.</p>
+
+  <h3>🧠 Rôle de l’hyperviseur</h3>
+  <ul>
+    <li>Alloue dynamiquement les ressources 💾</li>
+    <li>Isole les environnements 🔒</li>
+    <li>Agrège ou fractionne le matériel selon les besoins ⚙️</li>
+  </ul>
+
+  <div class="mermaid">
+    graph TD
+      A[Matériel physique (CPU, RAM, disque)] --> B[Hyperviseur]
+      B --> C1[VM Linux]
+      B --> C2[VM Windows]
+      B --> C3[VM Ubuntu]
+  </div>
+
+  <h3>✅ Avantages de la virtualisation</h3>
+  <ul>
+    <li>Isolation complète 🧱</li>
+    <li>Mutualisation du matériel 💰</li>
+    <li>Portabilité 🧳</li>
+    <li>Flexibilité 🧠</li>
+    <li>Abstraction matérielle 🔌</li>
+  </ul>
+
+  <p>
+    💡 Exemple : un serveur physique héberge plusieurs VMs (DB, web, stockage).
+  </p>
+
+  <h3>⚠️ Limites</h3>
+  <ul>
+    <li>Surcharge mémoire (chaque VM a son OS)</li>
+    <li>Démarrage lent 🐢</li>
+    <li>Gestion complexe ⚙️</li>
+  </ul>
+
+  <div class="callout info">➡️ Naissance de l’<strong>Infrastructure as Code (IaC)</strong> 💻</div>
+
+  <h3>⚙️ Infrastructure as Code (IaC)</h3>
+  <p>
+    L’IaC décrit l’infrastructure comme du <strong>code déclaratif</strong> :
+  </p>
+  <ul>
+    <li>Décrit l’état attendu (VMs, réseaux, services)</li>
+    <li>Automatise la création et la configuration</li>
+    <li>Facilite versionnage, reproductibilité, CI/CD</li>
+  </ul>
+
+  <div class="callout good">
+    🧰 Outils : Terraform, OpenTofu, Ansible, Puppet, Chef, CloudFormation,
+    Pulumi.
+  </div>
+
+  <h3>🐳 De la virtualisation à la conteneurisation</h3>
+  <p>
+    La conteneurisation <strong>ne remplace pas</strong> la virtualisation ;
+    elle <strong>s’appuie dessus</strong> :
+  </p>
+  <ul>
+    <li>Les VMs assurent <strong>l’isolation matérielle</strong> 🔒</li>
+    <li>Les conteneurs assurent <strong>l’isolation logicielle</strong> 🧩</li>
+  </ul>
+
+  <div class="mermaid">
+    graph LR
+      A[Matériel] --> B[Hyperviseur]
+      B --> C[VMs]
+      C --> D[Conteneurs exécutés dans les VMs]
+  </div>
+
+  <div class="callout info">💡 Kubernetes combine la robustesse des VMs et la légèreté des conteneurs.</div>
+
+  <h2>3️⃣ – Conteneurisation : l’isolation logique</h2>
+  <p>
+    <em>But :</em> Comprendre comment la conteneurisation isole les processus
+    applicatifs dans un même système d’exploitation, prépare la modularisation
+    des applications et introduit la logique d’orchestration.
+  </p>
+
+  <h3>🧠 Définition & objectifs</h3>
+  <p>
+    Un <strong>conteneur</strong> = un <strong>processus isolé</strong> + son
+    environnement d’exécution minimal (bibliothèques, configuration,
+    dépendances). Contrairement à une VM, il partage le noyau du système hôte,
+    ce qui le rend léger et rapide.
+  </p>
+
+  <div class="callout good">
+    🎯 Objectifs : Portabilité, Immutabilité, Rapidité et Densité.
+  </div>
+
+  <h3>🧩 Mécanismes Linux</h3>
+  <ul>
+    <li>
+      <strong>Namespaces</strong> → isolent les espaces d’exécution :
+      <code>pid</code>, <code>net</code>, <code>mnt</code>, <code>uts</code>,
+      <code>ipc</code>, <code>user</code>.
+    </li>
+    <li><strong>cgroups</strong> → contrôlent CPU, mémoire, I/O, etc.</li>
+    <li><strong>UnionFS / OverlayFS</strong> → superposent les couches.</li>
+    <li><strong>Capabilities / seccomp / AppArmor</strong> → restreignent les appels système.</li>
+  </ul>
+
+  <div class="callout info">
+    💡 Ces mécanismes sont utilisés par Docker, Podman, containerd sous le capot.
+  </div>
+
+  <h3>🧱 Image et exécution</h3>
+  <pre><code># Exemple : image NGINX
+sudo docker run -d -p 8080:80 nginx:1.25
+curl http://localhost:8080
+  </code></pre>
+
+  <p>➡️ Le conteneur expose un service HTTP isolé, sans affecter l’hôte.</p>
+
+  <div class="mermaid">
+    graph TD
+      A[Image Docker]
+      B[Conteneur exécuté]
+      C[Application web isolée]
+      A --> B --> C
+  </div>
+
+  <h3>🧰 Dockerfile : construction d’une image</h3>
+  <pre><code># Exemple : application minimale Node.js
+FROM node:20-slim
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --only=production
+COPY . .
+EXPOSE 5000
+CMD ["npm","start"]
+  </code></pre>
+
+  <div class="callout good">
+    🧩 L’image devient un artefact versionné et partageable (Docker Hub, GitLab Registry…)
+  </div>
+
+  <h3>⚙️ Composition de services (Docker Compose)</h3>
+  <pre><code>version: "3.9"
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+  db:
+    image: postgres:15
+volumes:
+  data:
+  </code></pre>
+
+  <div class="callout info">
+    🧩 Compose introduit la déclaration d’un état attendu — prémisse du modèle déclaratif Kubernetes.
+  </div>
+
+  <h3>🔒 Bonnes pratiques</h3>
+  <ul>
+    <li>Images minimales (alpine, distroless)</li>
+    <li>Pas d’exécution en root</li>
+    <li>Configuration externalisée</li>
+    <li>Volumes pour la persistance</li>
+    <li>Versionner et stocker les images en registre privé</li>
+  </ul>
+
+  <h3>🔁 Parallèle Docker Compose ↔️ Kubernetes</h3>
+  <table>
+    <thead><tr><th>Concept</th><th>Docker Compose</th><th>Kubernetes</th></tr></thead>
+    <tbody>
+      <tr><td>Service</td><td>Définit un conteneur et ses dépendances</td><td>Pod / Deployment</td></tr>
+      <tr><td>Port mapping</td><td>ports:</td><td>containerPort / Service</td></tr>
+      <tr><td>Volumes</td><td>volumes:</td><td>PersistentVolumeClaim</td></tr>
+      <tr><td>Variables</td><td>environment:</td><td>env:</td></tr>
+      <tr><td>Réseau</td><td>bridge interne</td><td>CNI</td></tr>
+      <tr><td>Fichier</td><td>docker-compose.yml</td><td>YAML manifestes</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout good">
+    💡 Kubernetes généralise et distribue ces concepts à grande échelle (multi-nœuds, auto-guérison).
+  </div>
+
+  <h3>🧭 À retenir</h3>
+  <ul>
+    <li>Un conteneur isole un processus sur le même noyau Linux.</li>
+    <li>Docker/Podman reposent sur namespaces + cgroups.</li>
+    <li>Docker Compose introduit la logique déclarative.</li>
+    <li>Cette complexité mène naturellement à Kubernetes.</li>
+  </ul>
+  <h2>4️⃣ – Kubernetes : orchestrer les conteneurs virtualisés</h2>
+
+  <p>Quand plusieurs conteneurs doivent coopérer :</p>
+  <ul>
+    <li>Automatiser les déploiements ⚙️</li>
+    <li>Gérer le réseau et les dépendances 🌐</li>
+    <li>Assurer la tolérance aux pannes 💪</li>
+    <li>Monter en charge 📈</li>
+  </ul>
+
+  <p>
+    ➡️ Apparition des orchestrateurs : Docker Swarm, Mesos,
+    <strong>Kubernetes</strong> 🚀
+  </p>
+
+  <h3>🧠 Orchestration & Kubernetes — "état désiré" et réconciliation</h3>
+  <p>
+    <strong>Objectif :</strong> comprendre comment Kubernetes orchestre des
+    applications conteneurisées avec un modèle déclaratif (« état désiré ») et
+    des boucles de réconciliation. Découvrir les objets clés : <em>Pod,
+    Deployment, Service, Ingress</em>.
+  </p>
+
+  <h3>🎯 Résultats d’apprentissage</h3>
+  <ul>
+    <li>Expliquer le principe déclaratif : on décrit <em>ce qu’on veut</em>.</li>
+    <li>Décrire le cycle <strong>réconciliation → action → observation</strong>.</li>
+    <li>Identifier les composants : API Server, etcd, Scheduler, Controllers, Kubelet, Runtime.</li>
+    <li>Lire/écrire des manifestes YAML (Pods / Deployments / Services / Ingress).</li>
+    <li>Comprendre le scaling et l’auto-guérison (remplacement automatique de Pods).</li>
+  </ul>
+
+  <h3>🧩 Déclaratif vs impératif</h3>
+  <ul>
+    <li><strong>Impératif :</strong> “fais ceci, puis cela” → fragile.</li>
+    <li><strong>Déclaratif :</strong> “voici l’état souhaité” → Kubernetes le maintient.</li>
+  </ul>
+
+  <p>
+    Parallèle IaC : Terraform décrit l’infra ; Kubernetes décrit l’état applicatif au niveau service.
+  </p>
+
+  <h3>🔁 Boucle de réconciliation (vue système)</h3>
+  <div class="mermaid">
+    flowchart LR
+      subgraph Dev["Développeur"]
+        A["Manifeste YAML : état désiré"]
+      end
+      A -->|"kubectl apply"| B["API Server"]
+      B --> C["etcd (état désiré)"]
+      B --> D[Controllers]
+      D --> E{État réel conforme ?}
+      E -- "Non" --> F["Créer / Remplacer / Scaler Pods"]
+      F --> G["Kubelet sur les nœuds"]
+      G --> H["Containers (containerd / CRI-O)"]
+      H --> I["Rapport d’état"]
+      I --> D
+      E -- "Oui" --> J[Convergence atteinte]
+  </div>
+
+  <h3>🧱 Objets fondamentaux</h3>
+  <ul>
+    <li><strong>Pod</strong> → plus petite unité déployable (1+ conteneurs).</li>
+    <li><strong>ReplicaSet</strong> → garantit n copies identiques d’un Pod.</li>
+    <li><strong>Deployment</strong> → gère le cycle de déploiement (rolling update, rollback).</li>
+    <li><strong>Service</strong> → point d’accès réseau stable.</li>
+    <li><strong>Ingress</strong> → expose les Services via HTTP(S).</li>
+    <li><strong>Namespace</strong> → cloisonnement logique.</li>
+    <li><strong>ConfigMap / Secret</strong> → configuration et données sensibles.</li>
+  </ul>
+
+  <h3>📄 Pod minimal</h3>
+  <pre><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+spec:
+  containers:
+    - name: web
+      image: nginx:1.25
+      ports:
+        - containerPort: 80
+  </code></pre>
+
+  <h3>📦 Deployment (3 réplicas)</h3>
+  <pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+  </code></pre>
+
+  <h3>🌐 Service + Ingress</h3>
+  <pre><code>apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: web
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-ing
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - host: web.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-svc
+                port:
+                  number: 80
+  </code></pre>
+
+  <div class="callout good">
+    💡 Kubernetes applique le modèle déclaratif à tous les objets : Pods, Services, Volumes, Secrets…
+  </div>
+
+  <h2>5️⃣ – La virtualisation au service de l’orchestration</h2>
+
+  <p>
+    <strong>Objectif :</strong> comprendre comment la virtualisation soutient
+    l’orchestration et garantit isolation, élasticité et abstraction des ressources.
+  </p>
+
+  <div class="mermaid">
+    flowchart TB
+      A[Infrastructure physique] --> B[Machines virtuelles]
+      B --> C[Cluster Kubernetes]
+      C --> D[Pods / Services / Ingress]
+  </div>
+
+  <h3>⚙️ Virtualisation et orchestration : dépendance</h3>
+  <ul>
+    <li>La virtualisation isole les nœuds (VM = unité matérielle du cluster).</li>
+    <li>Elle fournit la flexibilité : création/suppression dynamique des nœuds.</li>
+    <li>Elle permet à Kubernetes de scaler et migrer ses workloads.</li>
+  </ul>
+
+  <h3>💻 Exemple selon l’environnement</h3>
+  <ul>
+    <li><strong>Local :</strong> MicroK8s/Minikube s’exécutent dans des VMs.</li>
+    <li><strong>Cloud :</strong> Kubernetes s’appuie sur EC2, GCE, Azure VM, OpenStack…</li>
+  </ul>
+
+  <div class="callout info">
+    💡 Virtualisation = base matérielle ; Conteneurisation = unité logique ; Orchestration = pilotage global.
+  </div>
+
+  <h3>🧠 Complémentarité des couches</h3>
+  <table>
+    <thead>
+      <tr><th>Niveau</th><th>Technologie</th><th>Rôle</th><th>Exemples</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Matériel</td><td>Virtualisation</td><td>Isolation matérielle</td><td>KVM, VMware, Hyper-V</td></tr>
+      <tr><td>Système</td><td>Conteneurisation</td><td>Isolation des processus</td><td>Docker, LXC</td></tr>
+      <tr><td>Application</td><td>Orchestration</td><td>État désiré, scaling, résilience</td><td>Kubernetes</td></tr>
+    </tbody>
+  </table>
+
+  <h3>🏗️ Hiérarchie de clusters : du laptop à la production</h3>
+  <ul>
+    <li><strong>P0</strong> — Dev local : MicroK8s/Minikube, 1 nœud, stockage local.</li>
+    <li><strong>P1</strong> — Single cluster : 3 nœuds VM, Ingress HA.</li>
+    <li><strong>P2</strong> — HA régionale : autoscaling, registry privé, CSI managé.</li>
+    <li><strong>P3</strong> — Multi-clusters : GitOps global, fédération inter-région.</li>
+  </ul>
+
+  <div class="mermaid">
+    flowchart TB
+      subgraph P0["P0 — Dev local"]
+        A["MicroK8s (1 node)"]
+      end
+      subgraph P1["P1 — Single cluster"]
+        B["Control Plane + Node pool"]
+      end
+      subgraph P2["P2 — HA régionale"]
+        C1["Control Plane HA"]
+        C2["Pools de nœuds autoscalés"]
+      end
+      subgraph P3["P3 — Multi-clusters"]
+        D1["Cluster A"]
+        D2["Cluster B"]
+      end
+      A --> B --> C1 --> D1
+      C1 --> D2
+  </div>
+
+  <div class="callout good">
+    💡 Message clé : MicroK8s = même API que la prod, seule l’échelle et la résilience changent.
+  </div>
+</section>
