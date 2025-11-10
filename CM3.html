@@ -1,0 +1,1011 @@
+<section id="cm3-bloc1">
+  <h2>CM3 – Gestion de la durabilité et de l’état dans Kubernetes</h2>
+
+  <h3>Bloc 1 — Du déploiement éphémère à la supervision du cluster</h3>
+  <hr />
+
+  <h4>1. Contexte général : du déploiement éphémère à la production</h4>
+  <p>
+    Dans Kubernetes,
+    <strong>les conteneurs sont par définition éphémères</strong> : ils peuvent
+    être détruits et recréés à tout moment selon les besoins du cluster. Cette
+    caractéristique garantit la résilience, mais impose de comprendre
+    <strong>comment l’état et la durabilité sont gérés</strong>.
+  </p>
+
+  <blockquote>
+    <p>
+      <strong>Objectif du CM3</strong> : comprendre comment Kubernetes maintient
+      la stabilité, la santé et la persistance des applications, malgré la
+      nature éphémère des conteneurs.
+    </p>
+  </blockquote>
+
+  <p>Ce cours aborde :</p>
+  <ul>
+    <li>la <strong>réaction du cluster aux crashs</strong> ;</li>
+    <li>
+      la <strong>surveillance des applications</strong> (readiness, liveness) ;
+    </li>
+    <li>la <strong>gestion des ressources et de la persistance</strong> ;</li>
+    <li>et la <strong>supervision du cluster</strong>.</li>
+  </ul>
+
+  <hr />
+
+  <h4>2. Gestion des crashs et de l’état des pods</h4>
+  <h5>2.1 Cycle de vie d’un Pod</h5>
+
+  <p>
+    Un <strong>Pod</strong> encapsule un ou plusieurs conteneurs partageant le
+    même réseau et stockage. Il traverse plusieurs états :
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>État</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Pending</strong></td>
+        <td>
+          Le pod est accepté mais ses conteneurs ne sont pas encore démarrés.
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Running</strong></td>
+        <td>Tous les conteneurs sont lancés et fonctionnent.</td>
+      </tr>
+      <tr>
+        <td><strong>Succeeded</strong></td>
+        <td>Tous les conteneurs se sont terminés sans erreur.</td>
+      </tr>
+      <tr>
+        <td><strong>Failed</strong></td>
+        <td>Au moins un conteneur s’est arrêté avec une erreur.</td>
+      </tr>
+      <tr>
+        <td><strong>CrashLoopBackOff</strong></td>
+        <td>Le conteneur échoue et redémarre en boucle.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <pre><code class="bash">kubectl get pods -w
+kubectl describe pod &lt;nom&gt;
+kubectl logs &lt;nom&gt;</code></pre>
+
+  <pre><code class="bash">NAME           READY   STATUS             RESTARTS   AGE
+mailpit-7d89   1/1     Running            0          5m
+api-5f86d4c    0/1     CrashLoopBackOff   3          2m</code></pre>
+
+  <h5>2.2 Comportement en cas de crash</h5>
+  <ol>
+    <li>Le <strong>kubelet</strong> détecte l’échec du conteneur.</li>
+    <li>Il consulte la <strong>politique de redémarrage</strong> :</li>
+  </ol>
+
+  <pre><code class="yaml">restartPolicy: Always</code></pre>
+  <p>
+    Le conteneur est alors relancé automatiquement, assurant une
+    <strong>auto-guérison basique</strong> du cluster.
+  </p>
+
+  <h5>2.3 Rôle du runtime (Containerd)</h5>
+  <p>
+    Le kubelet s’appuie sur le <strong>container runtime</strong> (souvent
+    <em>Containerd</em> ou <em>CRI-O</em>) pour :
+  </p>
+  <ul>
+    <li>créer et exécuter les conteneurs ;</li>
+    <li>gérer le système de fichiers et le réseau ;</li>
+    <li>superviser leur état.</li>
+  </ul>
+
+  <pre><code class="bash">minikube ssh
+sudo ctr containers list</code></pre>
+
+  <p>
+    Le conteneur peut subsister temporairement même après la suppression du pod
+    Kubernetes.
+  </p>
+
+  <h5>2.4 CrashLoopBackOff</h5>
+  <p>
+    Cet état indique que Kubernetes tente périodiquement de redémarrer un
+    conteneur en échec, avec un délai croissant.
+  </p>
+
+  <pre><code class="bash">Warning  BackOff  kubelet  Back-off restarting failed container</code></pre>
+
+  <h5>2.5 Nettoyage et persistance</h5>
+  <ul>
+    <li>
+      Les fichiers internes au conteneur sont <strong>perdus</strong> à la
+      suppression.
+    </li>
+    <li>
+      Les données montées sur un <strong>volume persistant</strong> (PV) sont
+      conservées.
+    </li>
+  </ul>
+  <p>
+    <em>Nous verrons dans la suite comment rendre ces données persistantes.</em>
+  </p>
+
+  <hr />
+
+  <h4>2 bis. Santé du cluster et supervision des pods systèmes</h4>
+
+  <h5>2.6 Namespace <code>kube-system</code></h5>
+  <p>
+    Ce namespace regroupe les <strong>pods essentiels</strong> du cluster
+    (réseau, contrôle, planification, etc.).
+  </p>
+  <pre><code class="bash">kubectl get pods -n kube-system</code></pre>
+
+  <h5>2.7 Services vitaux du cluster</h5>
+  <table>
+    <thead>
+      <tr>
+        <th>Composant</th>
+        <th>Rôle principal</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>CoreDNS</strong></td>
+        <td>Résolution interne de noms entre pods et services.</td>
+      </tr>
+      <tr>
+        <td><strong>etcd</strong></td>
+        <td>Base de données clé-valeur stockant l’état du cluster.</td>
+      </tr>
+      <tr>
+        <td><strong>kube-apiserver</strong></td>
+        <td>
+          API du plan de contrôle : interface et cohérence des données dans
+          etcd.
+        </td>
+      </tr>
+      <tr>
+        <td><strong>kube-scheduler</strong></td>
+        <td>Affectation des pods aux nœuds disponibles.</td>
+      </tr>
+      <tr>
+        <td><strong>controller-manager</strong></td>
+        <td>Application des boucles de réconciliation.</td>
+      </tr>
+      <tr>
+        <td><strong>kube-proxy</strong></td>
+        <td>Routage du trafic entre services et pods.</td>
+      </tr>
+      <tr>
+        <td><strong>kindnet / calico / flannel</strong></td>
+        <td>Gestion du réseau inter-pods.</td>
+      </tr>
+      <tr>
+        <td><strong>minikube addons manager</strong></td>
+        <td>Gestion des extensions locales.</td>
+      </tr>
+      <tr>
+        <td><strong>kubelet</strong></td>
+        <td>Agent exécutant les conteneurs sur chaque nœud.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <pre><code class="bash">kubectl logs &lt;pod&gt; -n kube-system</code></pre>
+
+  <h5>2.8 Configuration du plan de contrôle</h5>
+  <p>
+    Les pods du plan de contrôle sont définis dans
+    <code>/etc/kubernetes/manifests</code> sur le nœud maître.
+  </p>
+  <pre><code class="bash">minikube ssh
+ls /etc/kubernetes/manifests
+cat kube-apiserver.yaml</code></pre>
+  <p>
+    Si un fichier manifest est supprimé, le pod disparaît ; s’il est restauré,
+    il est recréé automatiquement.
+  </p>
+
+  <blockquote>
+    <p>
+      <strong>Le kubelet</strong> gère ces pods statiques localement,
+      indépendamment de l’API server.
+    </p>
+  </blockquote>
+
+  <h5>2.9 Monitoring du cluster avec un DaemonSet (Glances)</h5>
+  <p>
+    Les <strong>DaemonSets</strong> déploient un pod sur chaque nœud du cluster,
+    utile pour le monitoring.
+  </p>
+
+  <pre><code class="yaml">apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: glances
+spec:
+  selector:
+    matchLabels:
+      app: glances
+  template:
+    metadata:
+      labels:
+        app: glances
+    spec:
+      containers:
+        - name: glances
+          image: nicolargo/glances:latest
+          ports:
+            - containerPort: 61208
+          volumeMounts:
+            - mountPath: /var/run/docker.sock
+              name: docker-sock
+      volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock</code></pre>
+
+  <pre><code class="bash">kubectl get daemonsets
+kubectl get pods -l app=glances -o wide</code></pre>
+
+  <p>
+    Pour exécuter Glances sur les nœuds maîtres, ajouter des
+    <strong>tolerations</strong>.
+  </p>
+
+  <hr />
+
+  <h4>Synthèse du bloc 1</h4>
+  <ul>
+    <li>
+      Les pods sont éphémères mais Kubernetes assure leur
+      <strong>auto-récupération</strong>.
+    </li>
+    <li>
+      Le <strong>kubelet</strong> et <strong>Containerd</strong> pilotent le
+      cycle de vie des conteneurs.
+    </li>
+    <li>
+      Le namespace <code>kube-system</code> contient les
+      <strong>services vitaux</strong> du cluster.
+    </li>
+    <li>Les manifests statiques maintiennent le plan de contrôle.</li>
+    <li>
+      Les <strong>DaemonSets</strong> permettent de déployer des agents sur tous
+      les nœuds (ex : Glances).
+    </li>
+  </ul>
+</section>
+<section id="cm3-bloc2">
+  <h3>Bloc 2 — Surveillance et gestion des ressources</h3>
+  <hr />
+
+  <h4>3. Surveillance de l’application : readiness et liveness probes</h4>
+
+  <h5>3.1 Pourquoi surveiller ?</h5>
+  <p>
+    Un pod peut être <strong>en cours d’exécution</strong> sans être
+    <strong>fonctionnel</strong>. Les probes (ou sondes) permettent à Kubernetes
+    de <strong>tester automatiquement la santé</strong> et la disponibilité des
+    conteneurs.
+  </p>
+
+  <p>
+    Kubernetes définit <strong>trois types de sondes fonctionnelles</strong> :
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Type de sonde</th>
+        <th>Objectif principal</th>
+        <th>Comportement</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Liveness Probe</strong></td>
+        <td>Vérifie si le conteneur est toujours vivant.</td>
+        <td>Redémarre le conteneur s’il échoue.</td>
+      </tr>
+      <tr>
+        <td><strong>Readiness Probe</strong></td>
+        <td>Vérifie si le conteneur est prêt à recevoir du trafic.</td>
+        <td>Retire le pod du Service jusqu’à rétablissement.</td>
+      </tr>
+      <tr>
+        <td><strong>Startup Probe</strong></td>
+        <td>Vérifie si le conteneur a fini de démarrer.</td>
+        <td>Donne plus de temps avant l’activation des autres sondes.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr />
+  <h5>À propos des chemins <code>/healthz</code> et <code>/ready</code></h5>
+
+  <p>
+    Dans Kubernetes, les applications exposent souvent des
+    <strong>points d’entrée de supervision</strong> :
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Endpoint</th>
+        <th>Usage</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>/healthz</code></td>
+        <td>Liveness</td>
+        <td>Vérifie que l’application répond encore.</td>
+      </tr>
+      <tr>
+        <td><code>/ready</code> ou <code>/readiness</code></td>
+        <td>Readiness</td>
+        <td>Vérifie que l’application est prête à recevoir des requêtes.</td>
+      </tr>
+      <tr>
+        <td><code>/metrics</code></td>
+        <td>Monitoring</td>
+        <td>Expose des métriques pour Prometheus ou d’autres outils.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <blockquote>
+    <p>
+      Ces endpoints sont libres mais
+      <strong>standardisés par convention</strong> : Kubernetes n’impose pas
+      leur nom, mais beaucoup d’outils les reconnaissent.
+    </p>
+  </blockquote>
+
+  <hr />
+
+  <h5>3.2 Méthodes techniques de probes</h5>
+  <p>
+    Chaque type de sonde peut utiliser différentes méthodes pour effectuer son
+    test :
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Méthode technique</th>
+        <th>Description</th>
+        <th>Exemple</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>HTTP GET</strong></td>
+        <td>Vérifie la réponse d’un endpoint HTTP.</td>
+        <td>/healthz, /ready</td>
+      </tr>
+      <tr>
+        <td><strong>TCP Socket</strong></td>
+        <td>Teste la connectivité réseau sur un port.</td>
+        <td>port 8080</td>
+      </tr>
+      <tr>
+        <td><strong>Exec Command</strong></td>
+        <td>Exécute une commande locale et vérifie le code retour.</td>
+        <td>ps aux</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <pre><code class="yaml">livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+readinessProbe:
+  tcpSocket:
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5</code></pre>
+
+  <hr />
+  <h5>3.3 Bonnes pratiques</h5>
+  <ul>
+    <li>
+      Prévoir un
+      <strong>délai initial</strong> (<code>initialDelaySeconds</code>) avant le
+      premier test.
+    </li>
+    <li>
+      Adapter la fréquence (<code>periodSeconds</code>) à la charge réelle.
+    </li>
+    <li>
+      Configurer les seuils <code>failureThreshold</code> et
+      <code>successThreshold</code>.
+    </li>
+    <li>Aligner les endpoints de test sur la logique applicative réelle.</li>
+  </ul>
+  <p>
+    <em>Une sonde trop agressive peut redémarrer inutilement un conteneur.</em>
+  </p>
+
+  <hr />
+  <h5>3.4 Exemple : application Flask</h5>
+  <pre><code class="python">from flask import Flask
+app = Flask(__name__)
+
+@app.route('/healthz')
+def health():
+    return 'OK', 200</code></pre>
+
+  <pre><code class="yaml">containers:
+  - name: web
+    image: myapp:latest
+    ports:
+      - containerPort: 5000
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 5000
+      initialDelaySeconds: 5
+      periodSeconds: 5</code></pre>
+
+  <p>
+    Si Flask cesse de répondre, Kubernetes redémarre automatiquement le
+    conteneur.
+  </p>
+
+  <hr />
+
+  <h4>4. Gestion des ressources : CPU et mémoire</h4>
+  <h5>4.1 Pourquoi limiter les ressources ?</h5>
+  <p>
+    Kubernetes mutualise les ressources d’un nœud entre plusieurs pods. Définir
+    des <strong>requests</strong> et <strong>limits</strong> permet :
+  </p>
+  <ul>
+    <li>d’assurer une <strong>répartition équitable</strong> ;</li>
+    <li>d’éviter la saturation du CPU ou de la RAM ;</li>
+    <li>d’améliorer la stabilité du cluster.</li>
+  </ul>
+
+  <pre><code class="yaml">resources:
+  requests:
+    cpu: "500m"
+    memory: "256Mi"
+  limits:
+    cpu: "1"
+    memory: "512Mi"</code></pre>
+
+  <ul>
+    <li><code>requests</code> : quantité garantie pour le conteneur.</li>
+    <li><code>limits</code> : plafond maximal autorisé.</li>
+  </ul>
+  <p><em>1 CPU = 1000 m ; 500 m = 50 % d’un cœur.</em></p>
+
+  <hr />
+  <h5>4.3 Effets des dépassements</h5>
+  <ul>
+    <li>Dépassement mémoire → conteneur tué (<code>OOMKilled</code>).</li>
+    <li>Dépassement CPU → conteneur ralenti (throttling).</li>
+  </ul>
+
+  <pre><code class="bash">kubectl describe pod &lt;nom&gt;
+# Rechercher 'OOMKilled' ou 'Throttling CPU'</code></pre>
+
+  <hr />
+  <h5>4.4 Réservation et surallocation</h5>
+  <p>
+    Kubernetes permet une <strong>surallocation contrôlée</strong> : plusieurs
+    pods peuvent demander plus que la capacité totale du nœud, mais le
+    <strong>scheduler</strong>
+    priorise ceux ayant les besoins les plus critiques.
+  </p>
+
+  <hr />
+  <h5>4.5 Priorités des pods</h5>
+  <pre><code class="yaml">apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 1000
+preemptionPolicy: PreemptLowerPriority</code></pre>
+
+  <pre><code class="yaml">spec:
+  priorityClassName: high-priority</code></pre>
+  <p>
+    Un pod de haute priorité peut préempter un autre lorsque les ressources
+    manquent.
+  </p>
+
+  <hr />
+  <h4>Synthèse du bloc 2</h4>
+  <ul>
+    <li>Les probes garantissent la santé et la disponibilité des pods.</li>
+    <li>
+      Les sondes <strong>liveness</strong>, <strong>readiness</strong> et
+      <strong>startup</strong> contrôlent la vitalité et la préparation.
+    </li>
+    <li>
+      Les <strong>requests</strong> et <strong>limits</strong> encadrent la
+      consommation des ressources.
+    </li>
+    <li>
+      Les <strong>PriorityClasses</strong> assurent la continuité des services
+      essentiels.
+    </li>
+  </ul>
+  <blockquote>
+    <p>
+      Ces mécanismes permettent à Kubernetes d’assurer la
+      <strong>qualité de service</strong> (QoS) et la
+      <strong>résilience applicative</strong> du cluster.
+    </p>
+  </blockquote>
+</section>
+<section id="cm3-bloc3">
+  <h3>Bloc 3 — Persistance des données et StatefulSets</h3>
+  <hr />
+
+  <h4>5. Persistance des données</h4>
+
+  <h5>5.1 Pourquoi la persistance est-elle nécessaire ?</h5>
+  <p>
+    Les pods Kubernetes sont <strong>éphémères</strong> : lors d’un redémarrage,
+    leur système de fichiers est reconstruit à partir de l’image du conteneur.
+    Toute donnée stockée localement est donc <strong>perdue</strong>.
+  </p>
+  <p>
+    Pour les applications manipulant des données (bases de données, journaux,
+    messagerie, etc.), il faut un moyen de
+    <strong>préserver ces informations entre les cycles de vie des pods</strong
+    >. Kubernetes fournit pour cela un modèle de
+    <strong>volumes persistants (PV/PVC)</strong>, qui découple la durée de vie
+    du stockage de celle des pods.
+  </p>
+
+  <hr />
+  <h5>5.2 Création manuelle : PV + PVC liés statiquement</h5>
+
+  <h6>a. Étape 1 — Définir un PersistentVolume (PV)</h6>
+  <p>
+    Un <strong>PersistentVolume</strong> représente une ressource de stockage
+    physique ou logique disponible dans le cluster.
+  </p>
+
+  <pre><code class="yaml">apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-demo
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /data/demo</code></pre>
+
+  <p>
+    Le volume est ici stocké localement sur le nœud dans le répertoire
+    <code>/data/demo</code>.
+  </p>
+
+  <h6>b. Étape 2 — Créer un PersistentVolumeClaim (PVC)</h6>
+  <p>
+    Un <strong>PersistentVolumeClaim</strong> (PVC) est la <em>demande</em> d’un
+    pod pour un volume persistant.
+  </p>
+
+  <pre><code class="yaml">apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-demo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi</code></pre>
+
+  <p>
+    Lorsque le PVC est créé, Kubernetes recherche un PV compatible (taille, mode
+    d’accès, disponibilité) et le lie automatiquement (<code>Bound</code>).
+  </p>
+
+  <pre><code class="bash">kubectl get pv,pvc</code></pre>
+
+  <h6>c. Étape 3 — Utiliser le PVC dans un Pod</h6>
+  <pre><code class="yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+spec:
+  containers:
+    - name: demo
+      image: busybox
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - mountPath: /mnt/data
+          name: demo-volume
+  volumes:
+    - name: demo-volume
+      persistentVolumeClaim:
+        claimName: pvc-demo</code></pre>
+
+  <p>
+    Le pod aura accès au dossier <code>/data/demo</code> du nœud sous
+    <code>/mnt/data</code>.
+  </p>
+
+  <hr />
+  <h5>5.3 Du modèle statique au modèle dynamique (StorageClass)</h5>
+
+  <p>
+    La méthode précédente impose de
+    <strong>créer manuellement chaque PV</strong> avant de le réclamer via un
+    PVC, ce qui est peu pratique dans des environnements évolutifs (multi-nœuds,
+    cloud, CI/CD). Kubernetes introduit les <strong>StorageClasses</strong> pour
+    automatiser cette création.
+  </p>
+
+  <h6>a. StorageClass : principe</h6>
+  <p>
+    Une <strong>StorageClass</strong> définit comment Kubernetes crée et gère
+    les volumes :
+  </p>
+  <ul>
+    <li>
+      choix du <strong>provisioner</strong> (driver CSI, hostPath, NFS, EBS,
+      Ceph, etc.),
+    </li>
+    <li>politique de réclamation,</li>
+    <li>moment d’allocation (immédiat ou différé).</li>
+  </ul>
+
+  <pre><code class="yaml">apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard
+provisioner: k8s.io/minikube-hostpath
+reclaimPolicy: Delete
+volumeBindingMode: Immediate</code></pre>
+
+  <h6>b. PVC dynamique</h6>
+  <p>
+    Lorsqu’un PVC utilise une StorageClass, Kubernetes
+    <strong>provisionne automatiquement un PV</strong> adapté :
+  </p>
+
+  <pre><code class="yaml">apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-dyn
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: standard</code></pre>
+
+  <p>Le PV est créé et lié dynamiquement au PVC.</p>
+  <pre><code class="bash">kubectl get pv,pvc</code></pre>
+
+  <blockquote>
+    <p>
+      💡 L’administrateur ne déclare plus de volumes à l’avance : Kubernetes
+      provisionne à la volée via la StorageClass.
+    </p>
+  </blockquote>
+
+  <h6>⚠️ Limite importante du provisionnement dynamique</h6>
+  <blockquote>
+    <p>
+      Le provisionnement dynamique
+      <strong>ne garantit pas la portabilité du stockage</strong> entre les
+      nœuds :
+    </p>
+    <ul>
+      <li>
+        Les StorageClasses basées sur un <strong>stockage réseau</strong> (NFS,
+        CephFS, Longhorn, CSI Cloud, etc.) offrent une accessibilité complète.
+      </li>
+      <li>
+        Les StorageClasses basées sur un
+        <strong>disque local</strong> (<code>hostPath</code>,
+        <code>local</code>) sont limitées à un nœud unique. Kubernetes doit
+        alors planifier le pod sur ce nœud (via <code>nodeAffinity</code> ou
+        <code>WaitForFirstConsumer</code>).
+      </li>
+    </ul>
+    <p>
+      👉 Le modèle dynamique est pertinent uniquement avec un
+      <strong>backend réseau partagé</strong>.
+    </p>
+  </blockquote>
+
+  <h6>c. Comparatif : volumes statiques vs dynamiques</h6>
+  <table>
+    <thead>
+      <tr>
+        <th>Aspect</th>
+        <th>PV/PVC statiques</th>
+        <th>StorageClass dynamique</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Création du volume</td>
+        <td>Manuelle (PV défini avant le PVC)</td>
+        <td>Automatique</td>
+      </tr>
+      <tr>
+        <td>Association PV–PVC</td>
+        <td>Basée sur correspondance</td>
+        <td>Gérée par le provisioner</td>
+      </tr>
+      <tr>
+        <td>Portabilité</td>
+        <td>Limitée</td>
+        <td>Optimale via stockage réseau</td>
+      </tr>
+      <tr>
+        <td>Cas d’usage</td>
+        <td>Démonstration, disque local</td>
+        <td>Cluster multi-nœuds, cloud</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr />
+  <h5>5.4 Modes d’accès, sécurité et typologie des stockages</h5>
+
+  <h6>a. Modes d’accès</h6>
+  <table>
+    <thead>
+      <tr>
+        <th>Mode</th>
+        <th>Signification</th>
+        <th>Cas d’usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>ReadWriteOnce (RWO)</strong></td>
+        <td>Lecture/écriture par un seul nœud.</td>
+        <td>Disque local, base de données.</td>
+      </tr>
+      <tr>
+        <td><strong>ReadOnlyMany (ROX)</strong></td>
+        <td>Lecture seule par plusieurs nœuds.</td>
+        <td>Fichiers statiques, images.</td>
+      </tr>
+      <tr>
+        <td><strong>ReadWriteMany (RWX)</strong></td>
+        <td>Lecture/écriture simultanée.</td>
+        <td>NFS, CephFS, GlusterFS.</td>
+      </tr>
+      <tr>
+        <td><strong>ReadWriteOncePod (RWOP)</strong></td>
+        <td>Accès exclusif par un seul pod.</td>
+        <td>Sécurité renforcée.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h6>b. Sécurité et permissions</h6>
+  <p>
+    Les droits POSIX sur le volume monté peuvent être définis via un
+    <strong>securityContext</strong> :
+  </p>
+  <pre><code class="yaml">securityContext:
+  runAsUser: 1000
+  fsGroup: 1000</code></pre>
+
+  <h6>c. Types de backend</h6>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Particularités</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>hostPath / local</strong></td>
+        <td>Stockage local du nœud.</td>
+        <td>Rapide mais non partagé.</td>
+      </tr>
+      <tr>
+        <td><strong>NFS</strong></td>
+        <td>Partage réseau simple.</td>
+        <td>Compatible RWX.</td>
+      </tr>
+      <tr>
+        <td><strong>CSI Driver</strong></td>
+        <td>Interface standard.</td>
+        <td>Supporte Ceph, EBS, Azure, etc.</td>
+      </tr>
+      <tr>
+        <td><strong>CephFS / RBD</strong></td>
+        <td>Stockage distribué en réseau.</td>
+        <td>Haute disponibilité.</td>
+      </tr>
+      <tr>
+        <td><strong>Cloud storage</strong></td>
+        <td>EBS, Persistent Disk, etc.</td>
+        <td>Provisionnement dynamique complet.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr />
+  <h4>6. StatefulSets et bases de données</h4>
+
+  <h5>6.1 Limites des Deployments</h5>
+  <p>
+    Les <strong>Deployments</strong> conviennent aux applications
+    <em>stateless</em>. Pour les bases nécessitant une identité stable, on
+    utilise un <strong>StatefulSet</strong>.
+  </p>
+  <blockquote>
+    <p>
+      ⚠️ Kubernetes ne gère pas la cohérence applicative (réplication,
+      concurrence, transactions) : cela relève du moteur de base (MySQL,
+      PostgreSQL, MongoDB, etc.).
+    </p>
+  </blockquote>
+
+  <h5>6.2 Caractéristiques d’un StatefulSet</h5>
+  <table>
+    <thead>
+      <tr>
+        <th>Fonction</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Identité stable</td>
+        <td>
+          Pods nommés séquentiellement (<code>app-0</code>,
+          <code>app-1</code>...)
+        </td>
+      </tr>
+      <tr>
+        <td>Volume dédié</td>
+        <td>Chaque pod possède son PVC personnel.</td>
+      </tr>
+      <tr>
+        <td>Ordre contrôlé</td>
+        <td>Création et suppression ordonnées.</td>
+      </tr>
+      <tr>
+        <td>Stabilité</td>
+        <td>Le nom et le volume persistent après redémarrage.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h5>6.3 Exemple : MariaDB avec StatefulSet</h5>
+  <pre><code class="yaml">apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mariadb
+spec:
+  selector:
+    matchLabels:
+      app: mariadb
+  serviceName: mariadb
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:10.11
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: root-password
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi</code></pre>
+
+  <ul>
+    <li>
+      <code>volumeClaimTemplates</code> crée un PVC par pod
+      (<code>data-mariadb-0</code>, etc.).
+    </li>
+    <li>
+      Si <code>replicas &gt; 1</code>, les instances sont indépendantes sans
+      réplication configurée.
+    </li>
+    <li>
+      Pour la cohérence : utiliser Galera, Group Replication, Service Headless
+      (<code>clusterIP: None</code>).
+    </li>
+  </ul>
+
+  <pre><code class="bash">kubectl get statefulsets
+kubectl get pods -l app=mariadb
+kubectl get pvc | grep mariadb</code></pre>
+
+  <pre><code class="bash">kubectl scale statefulset mariadb --replicas=3</code></pre>
+
+  <blockquote>
+    <p>
+      Kubernetes orchestre les pods et volumes, mais pas la logique
+      transactionnelle.
+    </p>
+  </blockquote>
+
+  <h5>6.5 ConfigMaps et Secrets</h5>
+  <pre><code class="yaml">apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-secret
+type: Opaque
+data:
+  root-password: bXlzZWNyZXRwYXNzCg== # base64("mysecretpass")</code></pre>
+  <p>
+    Les <strong>Secrets</strong> et <strong>ConfigMaps</strong> stockent la
+    configuration et les mots de passe de manière sécurisée. Ils sont
+    <em>namespaced</em> et non persistants, mais liés au déploiement.
+  </p>
+
+  <hr />
+  <h4>🧠 Synthèse du bloc 3</h4>
+  <ul>
+    <li>Les <strong>PV/PVC</strong> assurent la persistance des données.</li>
+    <li>
+      Les <strong>StorageClasses</strong> permettent le provisionnement
+      dynamique.
+    </li>
+    <li>
+      Ce modèle est efficace avec un
+      <strong>stockage en réseau partagé</strong>.
+    </li>
+    <li>
+      Les modes d’accès, droits et backends déterminent la souplesse du
+      stockage.
+    </li>
+    <li>
+      Les <strong>StatefulSets</strong> gèrent les applications avec état, mais
+      la cohérence reste applicative.
+    </li>
+  </ul>
+  <blockquote>
+    <p>
+      💡 Kubernetes orchestre la <strong>durabilité</strong>, la
+      <strong>stabilité</strong> et la <strong>persistance</strong> des
+      applications distribuées.
+    </p>
+  </blockquote>
+</section>
