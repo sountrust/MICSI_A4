@@ -1,715 +1,1317 @@
-<article id="cm3-global" style="font-family:Segoe UI,Arial,sans-serif; line-height:1.6;">
-
-  <!-- === HEADER === -->
-  <div style="background:#002b5c; color:white; padding:20px; border-radius:10px; margin-bottom:25px;">
-    <h1 style="margin:0; font-size:1.8em;">CM3 — Gestion de la durabilité et de l’état dans Kubernetes</h1>
-    <p style="margin:5px 0 0; font-size:1.1em;">Cours magistral — 1h</p>
-    <p style="font-size:0.95em; margin-top:10px; color:#cce0ff;">
-      Objectif : comprendre comment Kubernetes assure la <strong>stabilité</strong>, la <strong>persistance</strong> et la <strong>résilience</strong> des applications.
+<section
+  id="cm3-bloc1"
+  style="
+    font-family:
+      Segoe UI,
+      Arial,
+      sans-serif;
+    line-height: 1.6;
+  "
+>
+  <div
+    style="
+      background: #003366;
+      color: #fff;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    "
+  >
+    <h2 style="margin: 0; font-size: 1.6em">
+      CM3 – Gestion de la durabilité et de l’état dans Kubernetes
+    </h2>
+    <p style="margin: 5px 0 0 0; font-size: 1em">
+      Bloc 1 — Du déploiement éphémère à la supervision du cluster
     </p>
   </div>
 
-  <!-- === TABLE DES MATIÈRES === -->
-  <div style="background:#f3f9ff; border:1px solid #cce0ff; border-radius:8px; padding:15px 20px; margin-bottom:30px;">
-    <h2 style="color:#003366; margin-top:0;">🧭 Sommaire du CM3</h2>
-    <ul style="list-style:none; padding-left:10px; font-size:1em;">
-      <li><a href="#cm3-bloc1" style="color:#0066cc; text-decoration:none;">🔹 Bloc 1 — Du déploiement éphémère à la supervision du cluster</a></li>
-      <li><a href="#cm3-bloc2" style="color:#0066cc; text-decoration:none;">🔹 Bloc 2 — Surveillance et gestion des ressources</a></li>
-      <li><a href="#cm3-bloc3" style="color:#0066cc; text-decoration:none;">🔹 Bloc 3 — Persistance des données et StatefulSets</a></li>
-    </ul>
+  <h3 style="color: #006699">
+    1. Contexte général : du déploiement éphémère à la production
+  </h3>
+
+  <p>
+    Dans Kubernetes,
+    <strong>les conteneurs sont par définition éphémères</strong> : ils peuvent
+    être détruits et recréés à tout moment selon les besoins du cluster. Cette
+    caractéristique garantit la résilience, mais impose de comprendre
+    <strong>comment l’état et la durabilité sont gérés</strong>.
+  </p>
+
+  <div
+    style="
+      background: #f3f9ff;
+      border-left: 4px solid #007acc;
+      padding: 10px 15px;
+      margin: 10px 0;
+    "
+  >
+    <strong>🎯 Objectif du CM3 :</strong> comprendre comment Kubernetes
+    maintient la stabilité, la santé et la persistance des applications, malgré
+    la nature éphémère des conteneurs.
   </div>
 
-  <!-- === BLOC 1 === -->
-  <section id="cm3-bloc1">
-    <iframe srcdoc="
-      <section id="cm3-bloc1" style="font-family:Segoe UI,Arial,sans-serif; line-height:1.6;">
+  <p>Ce cours aborde :</p>
+  <ul
+    style="
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 10px 20px;
+    "
+  >
+    <li>la <strong>réaction du cluster aux crashs</strong> ;</li>
+    <li>
+      la <strong>surveillance des applications</strong> (readiness, liveness) ;
+    </li>
+    <li>la <strong>gestion des ressources et de la persistance</strong> ;</li>
+    <li>et la <strong>supervision du cluster lui-même</strong>.</li>
+  </ul>
 
-        <div style="background:#003366; color:#fff; padding:15px 20px; border-radius:8px; margin-bottom:15px;">
-          <h2 style="margin:0; font-size:1.6em;">CM3 – Gestion de la durabilité et de l’état dans Kubernetes</h2>
-          <p style="margin:5px 0 0 0; font-size:1em;">Bloc 1 — Du déploiement éphémère à la supervision du cluster</p>
-        </div>
-      
-        <h3 style="color:#006699;">1. Contexte général : du déploiement éphémère à la production</h3>
-      
-        <p>Dans Kubernetes, <strong>les conteneurs sont par définition éphémères</strong> :
-        ils peuvent être détruits et recréés à tout moment selon les besoins du cluster.
-        Cette caractéristique garantit la résilience, mais impose de comprendre
-        <strong>comment l’état et la durabilité sont gérés</strong>.</p>
-      
-        <div style="background:#f3f9ff; border-left:4px solid #007acc; padding:10px 15px; margin:10px 0;">
-          <strong>🎯 Objectif du CM3 :</strong> comprendre comment Kubernetes maintient la stabilité,
-          la santé et la persistance des applications, malgré la nature éphémère des conteneurs.
-        </div>
-      
-        <p>Ce cours aborde :</p>
-        <ul style="background:#fafafa; border:1px solid #ddd; border-radius:6px; padding:10px 20px;">
-          <li>la <strong>réaction du cluster aux crashs</strong> ;</li>
-          <li>la <strong>surveillance des applications</strong> (readiness, liveness) ;</li>
-          <li>la <strong>gestion des ressources et de la persistance</strong> ;</li>
-          <li>et la <strong>supervision du cluster lui-même</strong>.</li>
-        </ul>
-      
-        <hr style="border:0; border-top:2px solid #007acc; margin:25px 0;"/>
-      
-        <h3 style="color:#006699;">2. Gestion des crashs et de l’état des pods</h3>
-      
-        <h4 style="color:#0099cc;">2.1 Cycle de vie d’un Pod</h4>
-        <p>Un <strong>Pod</strong> encapsule un ou plusieurs conteneurs partageant le même réseau et stockage.  
-        Il traverse plusieurs états :</p>
-      
-        <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-          <thead style="background:#e6f2ff; color:#003366;">
-            <tr><th style="padding:8px; border:1px solid #ccc;">État</th><th style="padding:8px; border:1px solid #ccc;">Description</th></tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:8px; border:1px solid #ddd;">Pending</td><td style="padding:8px; border:1px solid #ddd;">Le pod a été accepté mais ses conteneurs ne sont pas encore démarrés.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ddd;">Running</td><td style="padding:8px; border:1px solid #ddd;">Tous les conteneurs sont lancés et fonctionnent.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ddd;">Succeeded</td><td style="padding:8px; border:1px solid #ddd;">Tous les conteneurs se sont terminés sans erreur.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ddd;">Failed</td><td style="padding:8px; border:1px solid #ddd;">Au moins un conteneur s’est arrêté avec une erreur.</td></tr>
-            <tr style="background:#fff6e6;"><td style="padding:8px; border:1px solid #ddd;"><strong>CrashLoopBackOff</strong></td><td style="padding:8px; border:1px solid #ddd;">Le conteneur échoue et redémarre en boucle.</td></tr>
-          </tbody>
-        </table>
-      
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      kubectl get pods -w
-      kubectl describe pod &lt;nom&gt;
-      kubectl logs &lt;nom&gt;
-        </pre>
-      
-        <h4 style="color:#0099cc;">2.2 Comportement en cas de crash</h4>
-        <ol>
-          <li>Le <strong>kubelet</strong> détecte l’échec du conteneur.</li>
-          <li>Il consulte la politique de redémarrage :</li>
-        </ol>
-      
-        <pre style="background:#f6f8fa; padding:10px; border-radius:5px; border-left:4px solid #007acc;">restartPolicy: Always</pre>
-      
-        <p>Le conteneur est relancé automatiquement, assurant une <strong>auto-guérison</strong> basique.</p>
-      
-        <h4 style="color:#0099cc;">2.3 Rôle du runtime (Containerd)</h4>
-        <p>Le kubelet s’appuie sur <strong>Containerd</strong> ou <strong>CRI-O</strong> pour gérer la création, l’exécution et la supervision des conteneurs.</p>
-      
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      minikube ssh
-      sudo ctr containers list
-        </pre>
-      
-        <p style="background:#fff8e1; border-left:4px solid #ff9800; padding:10px;">
-          💡 Le conteneur peut subsister temporairement même après la suppression du pod Kubernetes.
-        </p>
-      
-        <h4 style="color:#0099cc;">2.4 CrashLoopBackOff</h4>
-        <p>Kubernetes tente périodiquement de redémarrer le conteneur échoué avec une désactivation exponentielle :</p>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      Warning  BackOff  kubelet  Back-off restarting failed container
-        </pre>
-      
-        <h4 style="color:#0099cc;">2.5 Nettoyage et persistance</h4>
-        <ul>
-          <li>Les fichiers internes au conteneur sont <strong>perdus</strong> à la suppression.</li>
-          <li>Les données montées sur un <strong>volume persistant</strong> (PV) sont conservées.</li>
-        </ul>
-      
-        <div style="background:#f3f9ff; border-left:4px solid #007acc; padding:10px; margin:10px 0;">
-          💡 Nous verrons dans la suite comment rendre ces données persistantes.
-        </div>
-      
-        <hr style="border:0; border-top:2px solid #007acc; margin:25px 0;"/>
-      
-        <h3 style="color:#006699;">2 bis. Santé du cluster et supervision des pods systèmes</h3>
-      
-        <h4 style="color:#0099cc;">Namespace kube-system</h4>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">kubectl get pods -n kube-system</pre>
-      
-        <h4 style="color:#0099cc;">Services vitaux du cluster</h4>
-        <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-          <thead style="background:#003366; color:white;">
-            <tr><th style="padding:8px;">Composant</th><th style="padding:8px;">Rôle principal</th></tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:8px; border:1px solid #ccc;">CoreDNS</td><td style="padding:8px;">Résolution interne de noms entre pods et services.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">etcd</td><td style="padding:8px;">Base de données clé-valeur stockant l’état du cluster.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">kube-apiserver</td><td style="padding:8px;">API du plan de contrôle : cohérence et validation des objets Kubernetes.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">kube-scheduler</td><td style="padding:8px;">Affectation des pods aux nœuds disponibles.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">controller-manager</td><td style="padding:8px;">Application des boucles de réconciliation.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">kube-proxy</td><td style="padding:8px;">Routage du trafic entre services et pods.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">kindnet / calico / flannel</td><td style="padding:8px;">Gestion du réseau inter-pods.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">minikube addons manager</td><td style="padding:8px;">Gestion des extensions locales.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">kubelet</td><td style="padding:8px;">Agent exécutant les conteneurs sur chaque nœud.</td></tr>
-          </tbody>
-        </table>
-      
-        <h4 style="color:#0099cc;">2.8 Configuration du plan de contrôle</h4>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      minikube ssh
-      ls /etc/kubernetes/manifests
-      cat kube-apiserver.yaml
-        </pre>
-      
-        <div style="background:#fff8e1; border-left:4px solid #ff9800; padding:10px;">
-          ⚙️ <strong>Le kubelet</strong> gère ces pods statiques localement, indépendamment de l’API server.
-        </div>
-      
-        <h4 style="color:#0099cc;">2.9 Monitoring avec un DaemonSet (Glances)</h4>
-        <pre style="background:#f6f8fa; border-left:4px solid #007acc; padding:10px;">
-      apiVersion: apps/v1
-      kind: DaemonSet
-      metadata:
-        name: glances
-      spec:
-        selector:
-          matchLabels:
-            app: glances
-        template:
-          metadata:
-            labels:
-              app: glances
-          spec:
-            containers:
-              - name: glances
-                image: nicolargo/glances:latest
-                ports:
-                  - containerPort: 61208
-                volumeMounts:
-                  - mountPath: /var/run/docker.sock
-                    name: docker-sock
-            volumes:
-              - name: docker-sock
-                hostPath:
-                  path: /var/run/docker.sock
-        </pre>
-      
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      kubectl get daemonsets
-      kubectl get pods -l app=glances -o wide
-        </pre>
-      
-        <hr style="border:0; border-top:2px solid #007acc; margin:25px 0;"/>
-      
-        <div style="background:#f3f9ff; border-left:5px solid #007acc; padding:10px 15px;">
-          <h4 style="margin-top:0;">🔍 Synthèse du Bloc 1</h4>
-          <ul>
-            <li>Les pods sont éphémères mais Kubernetes assure leur <strong>auto-récupération</strong>.</li>
-            <li>Le <strong>kubelet</strong> et <strong>Containerd</strong> pilotent le cycle de vie des conteneurs.</li>
-            <li>Le namespace <code>kube-system</code> regroupe les <strong>services vitaux</strong> du cluster.</li>
-            <li>Les manifests statiques maintiennent le plan de contrôle.</li>
-            <li>Les <strong>DaemonSets</strong> déploient des agents de monitoring sur chaque nœud.</li>
-          </ul>
-        </div>
-      
-      </section>" style="width:100%; height:2000px; border:none;"></iframe>
-  </section>
+  <hr style="border: 0; border-top: 2px solid #007acc; margin: 25px 0" />
 
-  <!-- === BLOC 2 === -->
-  <section id="cm3-bloc2" style="margin-top:40px;">
-    <iframe srcdoc="
-      <section id="cm3-bloc2" style="font-family:Segoe UI,Arial,sans-serif; line-height:1.6;">
+  <h3 style="color: #006699">2. Gestion des crashs et de l’état des pods</h3>
 
-        <div style="background:#003366; color:#fff; padding:15px 20px; border-radius:8px; margin-bottom:15px;">
-          <h2 style="margin:0; font-size:1.6em;">Bloc 2 — Surveillance et gestion des ressources</h2>
-          <p style="margin:5px 0 0 0; font-size:1em;">CM3 – Gestion de la durabilité et de l’état dans Kubernetes</p>
-        </div>
-      
-        <h3 style="color:#006699;">3. Surveillance de l’application : readiness et liveness probes</h3>
-      
-        <h4 style="color:#0099cc;">3.1 Pourquoi surveiller ?</h4>
-        <p>
-          Un pod peut être <strong>en cours d’exécution</strong> sans être <strong>fonctionnel</strong>.
-          Les probes (ou sondes) permettent à Kubernetes de <strong>vérifier la santé et la disponibilité</strong> d’un conteneur.
-        </p>
-      
-        <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-          <thead style="background:#e6f2ff; color:#003366;">
-            <tr><th style="padding:8px; border:1px solid #ccc;">Type de sonde</th>
-                <th style="padding:8px; border:1px solid #ccc;">Objectif principal</th>
-                <th style="padding:8px; border:1px solid #ccc;">Comportement</th></tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:8px; border:1px solid #ddd;"><strong>Liveness Probe</strong></td><td>Vérifie si le conteneur est encore vivant.</td><td>Redémarre le conteneur si la vérification échoue.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ddd;"><strong>Readiness Probe</strong></td><td>Vérifie si le conteneur est prêt à recevoir du trafic.</td><td>Retire le pod du Service jusqu’à rétablissement.</td></tr>
-            <tr style="background:#fff6e6;"><td style="padding:8px; border:1px solid #ddd;"><strong>Startup Probe</strong></td><td>Vérifie si le conteneur a fini de démarrer.</td><td>Accorde un délai avant d’activer les autres sondes.</td></tr>
-          </tbody>
-        </table>
-      
-        <div style="background:#f3f9ff; border-left:4px solid #007acc; padding:10px; margin:15px 0;">
-          💡 Les probes assurent la <strong>résilience</strong> : Kubernetes redémarre automatiquement un pod non sain.
-        </div>
-      
-        <h4 style="color:#0099cc;">À propos des endpoints <code>/healthz</code> et <code>/ready</code></h4>
-        <p>Les applications exposent souvent des points de supervision standards :</p>
-      
-        <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-          <thead style="background:#003366; color:white;">
-            <tr><th style="padding:8px;">Endpoint</th><th style="padding:8px;">Usage</th><th style="padding:8px;">Description</th></tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:8px; border:1px solid #ccc;"><code>/healthz</code></td><td>Liveness</td><td>Vérifie que l’application répond encore.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;"><code>/ready</code> ou <code>/readiness</code></td><td>Readiness</td><td>Vérifie que l’application est prête à recevoir des requêtes.</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;"><code>/metrics</code></td><td>Monitoring</td><td>Expose des métriques (Prometheus, Grafana...).</td></tr>
-          </tbody>
-        </table>
-      
-        <blockquote style="background:#fff8e1; border-left:4px solid #ff9800; padding:10px;">
-          Ces endpoints sont <strong>standardisés par convention</strong> : Kubernetes ne les impose pas,
-          mais la plupart des frameworks modernes les implémentent.
-        </blockquote>
-      
-        <hr style="border:0; border-top:2px solid #007acc; margin:25px 0;"/>
-      
-        <h4 style="color:#0099cc;">3.2 Méthodes techniques de probes</h4>
-        <p>Chaque sonde peut utiliser différentes méthodes pour effectuer son test :</p>
-      
-        <table style="width:100%; border-collapse:collapse;">
-          <thead style="background:#e6f2ff; color:#003366;">
-            <tr><th style="padding:8px;">Méthode</th><th style="padding:8px;">Description</th><th style="padding:8px;">Exemple</th></tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:8px; border:1px solid #ddd;">HTTP GET</td><td>Teste la réponse d’un endpoint HTTP.</td><td><code>/healthz</code></td></tr>
-            <tr><td style="padding:8px; border:1px solid #ddd;">TCP Socket</td><td>Teste la connectivité sur un port.</td><td><code>8080</code></td></tr>
-            <tr><td style="padding:8px; border:1px solid #ddd;">Exec Command</td><td>Exécute une commande locale et vérifie le code retour.</td><td><code>ps aux</code></td></tr>
-          </tbody>
-        </table>
-      
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      livenessProbe:
-        httpGet:
-          path: /healthz
-          port: 8080
-        initialDelaySeconds: 10
-        periodSeconds: 5
-      
-      readinessProbe:
-        tcpSocket:
-          port: 8080
-        initialDelaySeconds: 5
-        periodSeconds: 5
-        </pre>
-      
-        <h4 style="color:#0099cc;">3.3 Bonnes pratiques</h4>
-        <ul style="background:#fafafa; border:1px solid #ddd; border-radius:6px; padding:10px 20px;">
-          <li>Utiliser un <strong>délai initial</strong> (<code>initialDelaySeconds</code>) pour laisser l’application démarrer.</li>
-          <li>Ajuster la fréquence (<code>periodSeconds</code>) aux temps de réponse réels.</li>
-          <li>Définir des seuils : <code>failureThreshold</code> / <code>successThreshold</code>.</li>
-          <li>Aligner les endpoints de test avec la logique applicative.</li>
-        </ul>
-        <p style="color:#cc0000;">⚠️ Des probes trop fréquentes peuvent provoquer des redémarrages inutiles.</p>
-      
-        <h4 style="color:#0099cc;">3.4 Exemple : application Flask</h4>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      from flask import Flask
-      app = Flask(__name__)
-      
-      @app.route('/healthz')
-      def health():
-          return 'OK', 200
-        </pre>
-      
-        <pre style="background:#f6f8fa; padding:10px; border-left:4px solid #007acc;">
+  <h4 style="color: #0099cc">2.1 Cycle de vie d’un Pod</h4>
+  <p>
+    Un <strong>Pod</strong> encapsule un ou plusieurs conteneurs partageant le
+    même réseau et stockage. Il traverse plusieurs états :
+  </p>
+
+  <table style="width: 100%; border-collapse: collapse; margin: 10px 0">
+    <thead style="background: #e6f2ff; color: #003366">
+      <tr>
+        <th style="padding: 8px; border: 1px solid #ccc">État</th>
+        <th style="padding: 8px; border: 1px solid #ccc">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">Pending</td>
+        <td style="padding: 8px; border: 1px solid #ddd">
+          Le pod a été accepté mais ses conteneurs ne sont pas encore démarrés.
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">Running</td>
+        <td style="padding: 8px; border: 1px solid #ddd">
+          Tous les conteneurs sont lancés et fonctionnent.
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">Succeeded</td>
+        <td style="padding: 8px; border: 1px solid #ddd">
+          Tous les conteneurs se sont terminés sans erreur.
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">Failed</td>
+        <td style="padding: 8px; border: 1px solid #ddd">
+          Au moins un conteneur s’est arrêté avec une erreur.
+        </td>
+      </tr>
+      <tr style="background: #fff6e6">
+        <td style="padding: 8px; border: 1px solid #ddd">
+          <strong>CrashLoopBackOff</strong>
+        </td>
+        <td style="padding: 8px; border: 1px solid #ddd">
+          Le conteneur échoue et redémarre en boucle.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+kubectl get pods -w
+kubectl describe pod &lt;nom&gt;
+kubectl logs &lt;nom&gt;
+  </pre>
+
+  <h4 style="color: #0099cc">2.2 Comportement en cas de crash</h4>
+  <ol>
+    <li>Le <strong>kubelet</strong> détecte l’échec du conteneur.</li>
+    <li>Il consulte la politique de redémarrage :</li>
+  </ol>
+
+  <pre
+    style="
+      background: #f6f8fa;
+      padding: 10px;
+      border-radius: 5px;
+      border-left: 4px solid #007acc;
+    "
+  >
+restartPolicy: Always</pre
+  >
+
+  <p>
+    Le conteneur est relancé automatiquement, assurant une
+    <strong>auto-guérison</strong> basique.
+  </p>
+
+  <h4 style="color: #0099cc">2.3 Rôle du runtime (Containerd)</h4>
+  <p>
+    Le kubelet s’appuie sur <strong>Containerd</strong> ou
+    <strong>CRI-O</strong> pour gérer la création, l’exécution et la supervision
+    des conteneurs.
+  </p>
+
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+minikube ssh
+sudo ctr containers list
+  </pre>
+
+  <p style="background: #fff8e1; border-left: 4px solid #ff9800; padding: 10px">
+    💡 Le conteneur peut subsister temporairement même après la suppression du
+    pod Kubernetes.
+  </p>
+
+  <h4 style="color: #0099cc">2.4 CrashLoopBackOff</h4>
+  <p>
+    Kubernetes tente périodiquement de redémarrer le conteneur échoué avec une
+    désactivation exponentielle :
+  </p>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+Warning  BackOff  kubelet  Back-off restarting failed container
+  </pre>
+
+  <h4 style="color: #0099cc">2.5 Nettoyage et persistance</h4>
+  <ul>
+    <li>
+      Les fichiers internes au conteneur sont <strong>perdus</strong> à la
+      suppression.
+    </li>
+    <li>
+      Les données montées sur un <strong>volume persistant</strong> (PV) sont
+      conservées.
+    </li>
+  </ul>
+
+  <div
+    style="
+      background: #f3f9ff;
+      border-left: 4px solid #007acc;
+      padding: 10px;
+      margin: 10px 0;
+    "
+  >
+    💡 Nous verrons dans la suite comment rendre ces données persistantes.
+  </div>
+
+  <hr style="border: 0; border-top: 2px solid #007acc; margin: 25px 0" />
+
+  <h3 style="color: #006699">
+    2 bis. Santé du cluster et supervision des pods systèmes
+  </h3>
+
+  <h4 style="color: #0099cc">Namespace kube-system</h4>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+kubectl get pods -n kube-system</pre
+  >
+
+  <h4 style="color: #0099cc">Services vitaux du cluster</h4>
+  <table style="width: 100%; border-collapse: collapse; margin: 10px 0">
+    <thead style="background: #003366; color: white">
+      <tr>
+        <th style="padding: 8px">Composant</th>
+        <th style="padding: 8px">Rôle principal</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">CoreDNS</td>
+        <td style="padding: 8px">
+          Résolution interne de noms entre pods et services.
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">etcd</td>
+        <td style="padding: 8px">
+          Base de données clé-valeur stockant l’état du cluster.
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">kube-apiserver</td>
+        <td style="padding: 8px">
+          API du plan de contrôle : cohérence et validation des objets
+          Kubernetes.
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">kube-scheduler</td>
+        <td style="padding: 8px">
+          Affectation des pods aux nœuds disponibles.
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">controller-manager</td>
+        <td style="padding: 8px">Application des boucles de réconciliation.</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">kube-proxy</td>
+        <td style="padding: 8px">Routage du trafic entre services et pods.</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">
+          kindnet / calico / flannel
+        </td>
+        <td style="padding: 8px">Gestion du réseau inter-pods.</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">
+          minikube addons manager
+        </td>
+        <td style="padding: 8px">Gestion des extensions locales.</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">kubelet</td>
+        <td style="padding: 8px">
+          Agent exécutant les conteneurs sur chaque nœud.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4 style="color: #0099cc">2.8 Configuration du plan de contrôle</h4>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+minikube ssh
+ls /etc/kubernetes/manifests
+cat kube-apiserver.yaml
+  </pre>
+
+  <div
+    style="background: #fff8e1; border-left: 4px solid #ff9800; padding: 10px"
+  >
+    ⚙️ <strong>Le kubelet</strong> gère ces pods statiques localement,
+    indépendamment de l’API server.
+  </div>
+
+  <h4 style="color: #0099cc">2.9 Monitoring avec un DaemonSet (Glances)</h4>
+  <pre
+    style="background: #f6f8fa; border-left: 4px solid #007acc; padding: 10px"
+  >
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: glances
+spec:
+  selector:
+    matchLabels:
+      app: glances
+  template:
+    metadata:
+      labels:
+        app: glances
+    spec:
       containers:
-        - name: web
-          image: myapp:latest
+        - name: glances
+          image: nicolargo/glances:latest
           ports:
-            - containerPort: 5000
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 5000
-            initialDelaySeconds: 5
-            periodSeconds: 5
-        </pre>
-      
-        <p>➡️ Si Flask cesse de répondre, Kubernetes redémarre automatiquement le conteneur.</p>
-      
-        <hr style="border:0; border-top:2px solid #007acc; margin:25px 0;"/>
-      
-        <h3 style="color:#006699;">4. Gestion des ressources : CPU et mémoire</h3>
-      
-        <h4 style="color:#0099cc;">4.1 Pourquoi limiter les ressources ?</h4>
-        <p>
-          Kubernetes mutualise les ressources d’un nœud entre plusieurs pods.
-          Définir des <strong>requests</strong> et <strong>limits</strong> garantit
-          une utilisation équilibrée et prévient la saturation.
-        </p>
-      
-        <pre style="background:#f6f8fa; border-left:4px solid #007acc; padding:10px;">
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "256Mi"
-        limits:
-          cpu: "1"
-          memory: "512Mi"
-        </pre>
-      
-        <ul>
-          <li><code>requests</code> : quantité minimale garantie pour le conteneur.</li>
-          <li><code>limits</code> : plafond maximal autorisé.</li>
-        </ul>
-      
-        <div style="background:#fff8e1; border-left:4px solid #ff9800; padding:10px;">
-          🧮 <strong>1 CPU = 1000 m</strong> (millicores). Une limite de 500 m correspond à 50 % d’un cœur.
-        </div>
-      
-        <h4 style="color:#0099cc;">4.3 Effets des dépassements</h4>
-        <ul>
-          <li><strong>Dépassement mémoire</strong> : conteneur tué (<code>OOMKilled</code>).</li>
-          <li><strong>Dépassement CPU</strong> : conteneur ralenti (throttling).</li>
-        </ul>
-      
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      kubectl describe pod &lt;nom&gt;
-      # Chercher les événements 'OOMKilled' ou 'Throttling CPU'
-        </pre>
-      
-        <h4 style="color:#0099cc;">4.4 Réservation et surallocation</h4>
-        <p>
-          Kubernetes autorise la <strong>surallocation contrôlée</strong> :
-          plusieurs pods peuvent demander plus que la capacité totale du nœud.
-          Le <strong>scheduler</strong> arbitre dynamiquement selon la charge réelle.
-        </p>
-      
-        <h4 style="color:#0099cc;">4.5 Priorités des pods</h4>
-        <pre style="background:#f6f8fa; border-left:4px solid #007acc; padding:10px;">
-      apiVersion: scheduling.k8s.io/v1
-      kind: PriorityClass
-      metadata:
-        name: high-priority
-      value: 1000
-      preemptionPolicy: PreemptLowerPriority
-        </pre>
-      
-        <pre style="background:#f6f8fa; padding:10px;">
-      spec:
-        priorityClassName: high-priority
-        </pre>
-      
-        <p>Un pod à haute priorité peut préempter un autre lorsque les ressources manquent.</p>
-      
-        <hr style="border:0; border-top:2px solid #007acc; margin:25px 0;"/>
-      
-        <div style="background:#f3f9ff; border-left:5px solid #007acc; padding:10px 15px;">
-          <h4 style="margin-top:0;">🔍 Synthèse du Bloc 2</h4>
-          <ul>
-            <li>Les <strong>probes</strong> assurent la santé et la disponibilité des pods.</li>
-            <li>Les sondes <strong>liveness</strong>, <strong>readiness</strong> et <strong>startup</strong> contrôlent vitalité et démarrage.</li>
-            <li>Les <strong>requests</strong> et <strong>limits</strong> encadrent la consommation de ressources.</li>
-            <li>Les <strong>PriorityClasses</strong> maintiennent la continuité des services essentiels.</li>
-          </ul>
-          <p>Ces notions permettent à Kubernetes d’assurer la <strong>qualité de service (QoS)</strong> et la <strong>résilience applicative</strong> du cluster.</p>
-        </div>
-      
-      </section>" style="width:100%; height:2000px; border:none;"></iframe>
-  </section>
+            - containerPort: 61208
+          volumeMounts:
+            - mountPath: /var/run/docker.sock
+              name: docker-sock
+      volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+  </pre>
 
-  <!-- === BLOC 3 === -->
-  <section id="cm3-bloc3" style="margin-top:40px;">
-    <iframe srcdoc="
-      <section id="cm3-bloc3" style="font-family:Segoe UI,Arial,sans-serif; line-height:1.6;">
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+kubectl get daemonsets
+kubectl get pods -l app=glances -o wide
+  </pre>
 
-        <div style="background:#003366; color:#fff; padding:15px 20px; border-radius:8px; margin-bottom:15px;">
-          <h2 style="margin:0; font-size:1.6em;">Bloc 3 — Persistance des données et StatefulSets</h2>
-          <p style="margin:5px 0 0 0; font-size:1em;">CM3 – Gestion de la durabilité et de l’état dans Kubernetes</p>
-        </div>
-      
-        <h3 style="color:#006699;">5. Persistance des données</h3>
-      
-        <h4 style="color:#0099cc;">5.1 Pourquoi la persistance est-elle nécessaire ?</h4>
-        <p>
-          Les pods Kubernetes sont <strong>éphémères</strong> : lors d’un redémarrage, leur système de fichiers est reconstruit à partir de l’image du conteneur.  
-          Toute donnée stockée localement est donc <strong>perdue</strong>.
-        </p>
-        <p>
-          Pour les applications manipulant des données (bases, messagerie, journaux, etc.), il faut un moyen de <strong>préserver ces informations entre les cycles de vie</strong>.
-          Kubernetes fournit pour cela les objets <strong>PersistentVolume (PV)</strong> et <strong>PersistentVolumeClaim (PVC)</strong>, qui dissocient la durée de vie du stockage de celle du pod.
-        </p>
-      
-        <hr style="border:0; border-top:2px solid #007acc; margin:25px 0;"/>
-      
-        <h4 style="color:#0099cc;">5.2 Création manuelle : PV + PVC liés statiquement</h4>
-      
-        <h5 style="color:#007acc;">a. Étape 1 — Définir un PersistentVolume (PV)</h5>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      apiVersion: v1
-      kind: PersistentVolume
-      metadata:
-        name: pv-demo
+  <hr style="border: 0; border-top: 2px solid #007acc; margin: 25px 0" />
+
+  <div
+    style="
+      background: #f3f9ff;
+      border-left: 5px solid #007acc;
+      padding: 10px 15px;
+    "
+  >
+    <h4 style="margin-top: 0">🔍 Synthèse du Bloc 1</h4>
+    <ul>
+      <li>
+        Les pods sont éphémères mais Kubernetes assure leur
+        <strong>auto-récupération</strong>.
+      </li>
+      <li>
+        Le <strong>kubelet</strong> et <strong>Containerd</strong> pilotent le
+        cycle de vie des conteneurs.
+      </li>
+      <li>
+        Le namespace <code>kube-system</code> regroupe les
+        <strong>services vitaux</strong> du cluster.
+      </li>
+      <li>Les manifests statiques maintiennent le plan de contrôle.</li>
+      <li>
+        Les <strong>DaemonSets</strong> déploient des agents de monitoring sur
+        chaque nœud.
+      </li>
+    </ul>
+  </div>
+</section>
+<section
+  id="cm3-bloc2"
+  style="
+    font-family:
+      Segoe UI,
+      Arial,
+      sans-serif;
+    line-height: 1.6;
+  "
+>
+  <div
+    style="
+      background: #003366;
+      color: #fff;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    "
+  >
+    <h2 style="margin: 0; font-size: 1.6em">
+      Bloc 2 — Surveillance et gestion des ressources
+    </h2>
+    <p style="margin: 5px 0 0 0; font-size: 1em">
+      CM3 – Gestion de la durabilité et de l’état dans Kubernetes
+    </p>
+  </div>
+
+  <h3 style="color: #006699">
+    3. Surveillance de l’application : readiness et liveness probes
+  </h3>
+
+  <h4 style="color: #0099cc">3.1 Pourquoi surveiller ?</h4>
+  <p>
+    Un pod peut être <strong>en cours d’exécution</strong> sans être
+    <strong>fonctionnel</strong>. Les probes (ou sondes) permettent à Kubernetes
+    de <strong>vérifier la santé et la disponibilité</strong> d’un conteneur.
+  </p>
+
+  <table style="width: 100%; border-collapse: collapse; margin: 10px 0">
+    <thead style="background: #e6f2ff; color: #003366">
+      <tr>
+        <th style="padding: 8px; border: 1px solid #ccc">Type de sonde</th>
+        <th style="padding: 8px; border: 1px solid #ccc">Objectif principal</th>
+        <th style="padding: 8px; border: 1px solid #ccc">Comportement</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">
+          <strong>Liveness Probe</strong>
+        </td>
+        <td>Vérifie si le conteneur est encore vivant.</td>
+        <td>Redémarre le conteneur si la vérification échoue.</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">
+          <strong>Readiness Probe</strong>
+        </td>
+        <td>Vérifie si le conteneur est prêt à recevoir du trafic.</td>
+        <td>Retire le pod du Service jusqu’à rétablissement.</td>
+      </tr>
+      <tr style="background: #fff6e6">
+        <td style="padding: 8px; border: 1px solid #ddd">
+          <strong>Startup Probe</strong>
+        </td>
+        <td>Vérifie si le conteneur a fini de démarrer.</td>
+        <td>Accorde un délai avant d’activer les autres sondes.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div
+    style="
+      background: #f3f9ff;
+      border-left: 4px solid #007acc;
+      padding: 10px;
+      margin: 15px 0;
+    "
+  >
+    💡 Les probes assurent la <strong>résilience</strong> : Kubernetes redémarre
+    automatiquement un pod non sain.
+  </div>
+
+  <h4 style="color: #0099cc">
+    À propos des endpoints <code>/healthz</code> et <code>/ready</code>
+  </h4>
+  <p>Les applications exposent souvent des points de supervision standards :</p>
+
+  <table style="width: 100%; border-collapse: collapse; margin: 10px 0">
+    <thead style="background: #003366; color: white">
+      <tr>
+        <th style="padding: 8px">Endpoint</th>
+        <th style="padding: 8px">Usage</th>
+        <th style="padding: 8px">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">
+          <code>/healthz</code>
+        </td>
+        <td>Liveness</td>
+        <td>Vérifie que l’application répond encore.</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">
+          <code>/ready</code> ou <code>/readiness</code>
+        </td>
+        <td>Readiness</td>
+        <td>Vérifie que l’application est prête à recevoir des requêtes.</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">
+          <code>/metrics</code>
+        </td>
+        <td>Monitoring</td>
+        <td>Expose des métriques (Prometheus, Grafana...).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <blockquote
+    style="background: #fff8e1; border-left: 4px solid #ff9800; padding: 10px"
+  >
+    Ces endpoints sont <strong>standardisés par convention</strong> : Kubernetes
+    ne les impose pas, mais la plupart des frameworks modernes les implémentent.
+  </blockquote>
+
+  <hr style="border: 0; border-top: 2px solid #007acc; margin: 25px 0" />
+
+  <h4 style="color: #0099cc">3.2 Méthodes techniques de probes</h4>
+  <p>
+    Chaque sonde peut utiliser différentes méthodes pour effectuer son test :
+  </p>
+
+  <table style="width: 100%; border-collapse: collapse">
+    <thead style="background: #e6f2ff; color: #003366">
+      <tr>
+        <th style="padding: 8px">Méthode</th>
+        <th style="padding: 8px">Description</th>
+        <th style="padding: 8px">Exemple</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">HTTP GET</td>
+        <td>Teste la réponse d’un endpoint HTTP.</td>
+        <td><code>/healthz</code></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">TCP Socket</td>
+        <td>Teste la connectivité sur un port.</td>
+        <td><code>8080</code></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">Exec Command</td>
+        <td>Exécute une commande locale et vérifie le code retour.</td>
+        <td><code>ps aux</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+readinessProbe:
+  tcpSocket:
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  </pre>
+
+  <h4 style="color: #0099cc">3.3 Bonnes pratiques</h4>
+  <ul
+    style="
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 10px 20px;
+    "
+  >
+    <li>
+      Utiliser un
+      <strong>délai initial</strong> (<code>initialDelaySeconds</code>) pour
+      laisser l’application démarrer.
+    </li>
+    <li>
+      Ajuster la fréquence (<code>periodSeconds</code>) aux temps de réponse
+      réels.
+    </li>
+    <li>
+      Définir des seuils : <code>failureThreshold</code> /
+      <code>successThreshold</code>.
+    </li>
+    <li>Aligner les endpoints de test avec la logique applicative.</li>
+  </ul>
+  <p style="color: #cc0000">
+    ⚠️ Des probes trop fréquentes peuvent provoquer des redémarrages inutiles.
+  </p>
+
+  <h4 style="color: #0099cc">3.4 Exemple : application Flask</h4>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/healthz')
+def health():
+    return 'OK', 200
+  </pre>
+
+  <pre
+    style="background: #f6f8fa; padding: 10px; border-left: 4px solid #007acc"
+  >
+containers:
+  - name: web
+    image: myapp:latest
+    ports:
+      - containerPort: 5000
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 5000
+      initialDelaySeconds: 5
+      periodSeconds: 5
+  </pre>
+
+  <p>
+    ➡️ Si Flask cesse de répondre, Kubernetes redémarre automatiquement le
+    conteneur.
+  </p>
+
+  <hr style="border: 0; border-top: 2px solid #007acc; margin: 25px 0" />
+
+  <h3 style="color: #006699">4. Gestion des ressources : CPU et mémoire</h3>
+
+  <h4 style="color: #0099cc">4.1 Pourquoi limiter les ressources ?</h4>
+  <p>
+    Kubernetes mutualise les ressources d’un nœud entre plusieurs pods. Définir
+    des <strong>requests</strong> et <strong>limits</strong> garantit une
+    utilisation équilibrée et prévient la saturation.
+  </p>
+
+  <pre
+    style="background: #f6f8fa; border-left: 4px solid #007acc; padding: 10px"
+  >
+resources:
+  requests:
+    cpu: "500m"
+    memory: "256Mi"
+  limits:
+    cpu: "1"
+    memory: "512Mi"
+  </pre>
+
+  <ul>
+    <li>
+      <code>requests</code> : quantité minimale garantie pour le conteneur.
+    </li>
+    <li><code>limits</code> : plafond maximal autorisé.</li>
+  </ul>
+
+  <div
+    style="background: #fff8e1; border-left: 4px solid #ff9800; padding: 10px"
+  >
+    🧮 <strong>1 CPU = 1000 m</strong> (millicores). Une limite de 500 m
+    correspond à 50 % d’un cœur.
+  </div>
+
+  <h4 style="color: #0099cc">4.3 Effets des dépassements</h4>
+  <ul>
+    <li>
+      <strong>Dépassement mémoire</strong> : conteneur tué
+      (<code>OOMKilled</code>).
+    </li>
+    <li><strong>Dépassement CPU</strong> : conteneur ralenti (throttling).</li>
+  </ul>
+
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+kubectl describe pod &lt;nom&gt;
+# Chercher les événements 'OOMKilled' ou 'Throttling CPU'
+  </pre>
+
+  <h4 style="color: #0099cc">4.4 Réservation et surallocation</h4>
+  <p>
+    Kubernetes autorise la <strong>surallocation contrôlée</strong> : plusieurs
+    pods peuvent demander plus que la capacité totale du nœud. Le
+    <strong>scheduler</strong> arbitre dynamiquement selon la charge réelle.
+  </p>
+
+  <h4 style="color: #0099cc">4.5 Priorités des pods</h4>
+  <pre
+    style="background: #f6f8fa; border-left: 4px solid #007acc; padding: 10px"
+  >
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 1000
+preemptionPolicy: PreemptLowerPriority
+  </pre>
+
+  <pre style="background: #f6f8fa; padding: 10px">
+spec:
+  priorityClassName: high-priority
+  </pre>
+
+  <p>
+    Un pod à haute priorité peut préempter un autre lorsque les ressources
+    manquent.
+  </p>
+
+  <hr style="border: 0; border-top: 2px solid #007acc; margin: 25px 0" />
+
+  <div
+    style="
+      background: #f3f9ff;
+      border-left: 5px solid #007acc;
+      padding: 10px 15px;
+    "
+  >
+    <h4 style="margin-top: 0">🔍 Synthèse du Bloc 2</h4>
+    <ul>
+      <li>
+        Les <strong>probes</strong> assurent la santé et la disponibilité des
+        pods.
+      </li>
+      <li>
+        Les sondes <strong>liveness</strong>, <strong>readiness</strong> et
+        <strong>startup</strong> contrôlent vitalité et démarrage.
+      </li>
+      <li>
+        Les <strong>requests</strong> et <strong>limits</strong> encadrent la
+        consommation de ressources.
+      </li>
+      <li>
+        Les <strong>PriorityClasses</strong> maintiennent la continuité des
+        services essentiels.
+      </li>
+    </ul>
+    <p>
+      Ces notions permettent à Kubernetes d’assurer la
+      <strong>qualité de service (QoS)</strong> et la
+      <strong>résilience applicative</strong> du cluster.
+    </p>
+  </div>
+</section>
+<section
+  id="cm3-bloc3"
+  style="
+    font-family:
+      Segoe UI,
+      Arial,
+      sans-serif;
+    line-height: 1.6;
+  "
+>
+  <div
+    style="
+      background: #003366;
+      color: #fff;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    "
+  >
+    <h2 style="margin: 0; font-size: 1.6em">
+      Bloc 3 — Persistance des données et StatefulSets
+    </h2>
+    <p style="margin: 5px 0 0 0; font-size: 1em">
+      CM3 – Gestion de la durabilité et de l’état dans Kubernetes
+    </p>
+  </div>
+
+  <h3 style="color: #006699">5. Persistance des données</h3>
+
+  <h4 style="color: #0099cc">
+    5.1 Pourquoi la persistance est-elle nécessaire ?
+  </h4>
+  <p>
+    Les pods Kubernetes sont <strong>éphémères</strong> : lors d’un redémarrage,
+    leur système de fichiers est reconstruit à partir de l’image du conteneur.
+    Toute donnée stockée localement est donc <strong>perdue</strong>.
+  </p>
+  <p>
+    Pour les applications manipulant des données (bases, messagerie, journaux,
+    etc.), il faut un moyen de
+    <strong>préserver ces informations entre les cycles de vie</strong>.
+    Kubernetes fournit pour cela les objets
+    <strong>PersistentVolume (PV)</strong> et
+    <strong>PersistentVolumeClaim (PVC)</strong>, qui dissocient la durée de vie
+    du stockage de celle du pod.
+  </p>
+
+  <hr style="border: 0; border-top: 2px solid #007acc; margin: 25px 0" />
+
+  <h4 style="color: #0099cc">
+    5.2 Création manuelle : PV + PVC liés statiquement
+  </h4>
+
+  <h5 style="color: #007acc">a. Étape 1 — Définir un PersistentVolume (PV)</h5>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-demo
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /data/demo
+  </pre>
+
+  <p>
+    Ce volume est stocké localement sur le nœud dans <code>/data/demo</code>.
+  </p>
+
+  <h5 style="color: #007acc">
+    b. Étape 2 — Créer un PersistentVolumeClaim (PVC)
+  </h5>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-demo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  </pre>
+
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+kubectl get pv,pvc
+  </pre>
+
+  <h5 style="color: #007acc">c. Étape 3 — Utiliser le PVC dans un Pod</h5>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+spec:
+  containers:
+    - name: demo
+      image: busybox
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - mountPath: /mnt/data
+          name: demo-volume
+  volumes:
+    - name: demo-volume
+      persistentVolumeClaim:
+        claimName: pvc-demo
+  </pre>
+
+  <div
+    style="
+      background: #f3f9ff;
+      border-left: 4px solid #007acc;
+      padding: 10px;
+      margin: 10px 0;
+    "
+  >
+    💡 Le pod accède au répertoire <code>/data/demo</code> sous
+    <code>/mnt/data</code> dans le conteneur.
+  </div>
+
+  <hr style="border: 0; border-top: 2px solid #007acc; margin: 25px 0" />
+
+  <h4 style="color: #0099cc">
+    5.3 Du modèle statique au modèle dynamique (StorageClass)
+  </h4>
+  <p>
+    Créer chaque PV à la main est lourd à maintenir. Kubernetes introduit les
+    <strong>StorageClasses</strong> pour un
+    <strong>provisionnement dynamique</strong>.
+  </p>
+
+  <h5 style="color: #007acc">a. StorageClass : principe</h5>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard
+provisioner: k8s.io/minikube-hostpath
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+  </pre>
+
+  <h5 style="color: #007acc">b. PVC dynamique</h5>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-dyn
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: standard
+  </pre>
+
+  <div
+    style="background: #f3f9ff; border-left: 4px solid #007acc; padding: 10px"
+  >
+    💡 Aucun PV n’est créé à la main : Kubernetes le provisionne automatiquement
+    via la StorageClass.
+  </div>
+
+  <h5 style="color: #cc0000">⚠️ Limite du provisionnement dynamique</h5>
+  <blockquote
+    style="background: #fff8e1; border-left: 4px solid #ff9800; padding: 10px"
+  >
+    Le provisionnement dynamique ne garantit pas la
+    <strong>portabilité du stockage</strong> entre nœuds :<br />
+    — avec un <strong>stockage réseau</strong> (NFS, CephFS, CSI Cloud…), les
+    volumes sont accessibles de partout ;<br />
+    — avec un <strong>disque local</strong>, le volume reste attaché à un seul
+    nœud (géré par <code>nodeAffinity</code> ou
+    <code>WaitForFirstConsumer</code>). 👉 Ce modèle est pertinent uniquement
+    avec un backend réseau partagé.
+  </blockquote>
+
+  <h5 style="color: #007acc">c. Comparatif</h5>
+  <table style="width: 100%; border-collapse: collapse; margin: 10px 0">
+    <thead style="background: #e6f2ff; color: #003366">
+      <tr>
+        <th style="padding: 8px">Aspect</th>
+        <th style="padding: 8px">PV/PVC statiques</th>
+        <th style="padding: 8px">StorageClass dynamique</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">Création du volume</td>
+        <td>Manuelle</td>
+        <td>Automatique</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">Association PV–PVC</td>
+        <td>Basée sur correspondance</td>
+        <td>Gérée par le provisioner</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">Portabilité</td>
+        <td>Limitée</td>
+        <td>Optimale (stockage réseau)</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd">Cas d’usage</td>
+        <td>Démonstration, local</td>
+        <td>Cluster multi-nœuds, cloud</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr style="border: 0; border-top: 2px solid #007acc; margin: 25px 0" />
+
+  <h4 style="color: #0099cc">5.4 Modes d’accès, sécurité et typologie</h4>
+
+  <h5 style="color: #007acc">a. Modes d’accès</h5>
+  <table style="width: 100%; border-collapse: collapse">
+    <thead style="background: #003366; color: #fff">
+      <tr>
+        <th style="padding: 8px">Mode</th>
+        <th style="padding: 8px">Signification</th>
+        <th style="padding: 8px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">
+          ReadWriteOnce (RWO)
+        </td>
+        <td>Lecture/écriture par un seul nœud</td>
+        <td>Bases de données</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">ReadOnlyMany (ROX)</td>
+        <td>Lecture seule par plusieurs nœuds</td>
+        <td>Contenu statique</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">
+          ReadWriteMany (RWX)
+        </td>
+        <td>Lecture/écriture simultanée</td>
+        <td>NFS, CephFS</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">
+          ReadWriteOncePod (RWOP)
+        </td>
+        <td>Accès exclusif par un pod</td>
+        <td>Cas sensibles</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h5 style="color: #007acc">b. Sécurité et permissions</h5>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+securityContext:
+  runAsUser: 1000
+  fsGroup: 1000
+  </pre>
+
+  <h5 style="color: #007acc">c. Types de backend</h5>
+  <table style="width: 100%; border-collapse: collapse">
+    <thead style="background: #e6f2ff; color: #003366">
+      <tr>
+        <th style="padding: 8px">Type</th>
+        <th style="padding: 8px">Description</th>
+        <th style="padding: 8px">Particularités</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">hostPath / local</td>
+        <td>Stockage local du nœud</td>
+        <td>Rapide mais non partagé</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">NFS</td>
+        <td>Partage réseau simple</td>
+        <td>Compatible RWX</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">CSI Driver</td>
+        <td>Interface standard</td>
+        <td>Supporte Ceph, EBS, Azure...</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">CephFS / RBD</td>
+        <td>Stockage distribué</td>
+        <td>Haute disponibilité</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">Cloud storage</td>
+        <td>EBS, Persistent Disk, etc.</td>
+        <td>Provisionnement dynamique</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr style="border: 0; border-top: 2px solid #007acc; margin: 25px 0" />
+
+  <h3 style="color: #006699">6. StatefulSets et bases de données</h3>
+
+  <h4 style="color: #0099cc">6.1 Limites des Deployments</h4>
+  <p>
+    Les <strong>Deployments</strong> conviennent aux applications
+    <em>stateless</em>. Pour les bases de données ou services à état, on utilise
+    les <strong>StatefulSets</strong>.
+  </p>
+
+  <blockquote
+    style="background: #fff8e1; border-left: 4px solid #ff9800; padding: 10px"
+  >
+    ⚠️ Kubernetes ne gère pas la cohérence interne des données (réplication,
+    transactions). Cela reste du ressort du moteur SGBD (MySQL, PostgreSQL,
+    MongoDB...).
+  </blockquote>
+
+  <h4 style="color: #0099cc">6.2 Caractéristiques d’un StatefulSet</h4>
+  <table style="width: 100%; border-collapse: collapse">
+    <thead style="background: #e6f2ff; color: #003366">
+      <tr>
+        <th style="padding: 8px">Fonction</th>
+        <th style="padding: 8px">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">Identité stable</td>
+        <td>
+          Pods nommés séquentiellement (<code>app-0</code>,
+          <code>app-1</code>...)
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">Volume dédié</td>
+        <td>Chaque pod possède son propre PVC</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">Ordre contrôlé</td>
+        <td>Création et suppression ordonnées</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc">Stabilité</td>
+        <td>Conservation du nom et du volume</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4 style="color: #0099cc">6.3 Exemple : MariaDB avec StatefulSet</h4>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mariadb
+spec:
+  serviceName: mariadb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:10.11
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: root-password
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
       spec:
-        capacity:
-          storage: 1Gi
-        accessModes:
-          - ReadWriteOnce
-        hostPath:
-          path: /data/demo
-        </pre>
-      
-        <p>Ce volume est stocké localement sur le nœud dans <code>/data/demo</code>.</p>
-      
-        <h5 style="color:#007acc;">b. Étape 2 — Créer un PersistentVolumeClaim (PVC)</h5>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      apiVersion: v1
-      kind: PersistentVolumeClaim
-      metadata:
-        name: pvc-demo
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 1Gi
-        </pre>
-      
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      kubectl get pv,pvc
-        </pre>
-      
-        <h5 style="color:#007acc;">c. Étape 3 — Utiliser le PVC dans un Pod</h5>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: demo-pod
-      spec:
-        containers:
-          - name: demo
-            image: busybox
-            command: ["sleep", "3600"]
-            volumeMounts:
-              - mountPath: /mnt/data
-                name: demo-volume
-        volumes:
-          - name: demo-volume
-            persistentVolumeClaim:
-              claimName: pvc-demo
-        </pre>
-      
-        <div style="background:#f3f9ff; border-left:4px solid #007acc; padding:10px; margin:10px 0;">
-          💡 Le pod accède au répertoire <code>/data/demo</code> sous <code>/mnt/data</code> dans le conteneur.
-        </div>
-      
-        <hr style="border:0; border-top:2px solid #007acc; margin:25px 0;"/>
-      
-        <h4 style="color:#0099cc;">5.3 Du modèle statique au modèle dynamique (StorageClass)</h4>
-        <p>
-          Créer chaque PV à la main est lourd à maintenir.  
-          Kubernetes introduit les <strong>StorageClasses</strong> pour un <strong>provisionnement dynamique</strong>.
-        </p>
-      
-        <h5 style="color:#007acc;">a. StorageClass : principe</h5>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      apiVersion: storage.k8s.io/v1
-      kind: StorageClass
-      metadata:
-        name: standard
-      provisioner: k8s.io/minikube-hostpath
-      reclaimPolicy: Delete
-      volumeBindingMode: Immediate
-        </pre>
-      
-        <h5 style="color:#007acc;">b. PVC dynamique</h5>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      apiVersion: v1
-      kind: PersistentVolumeClaim
-      metadata:
-        name: pvc-dyn
-      spec:
-        accessModes:
-          - ReadWriteOnce
+        accessModes: ["ReadWriteOnce"]
         resources:
           requests:
             storage: 2Gi
-        storageClassName: standard
-        </pre>
-      
-        <div style="background:#f3f9ff; border-left:4px solid #007acc; padding:10px;">
-          💡 Aucun PV n’est créé à la main : Kubernetes le provisionne automatiquement via la StorageClass.
-        </div>
-      
-        <h5 style="color:#cc0000;">⚠️ Limite du provisionnement dynamique</h5>
-        <blockquote style="background:#fff8e1; border-left:4px solid #ff9800; padding:10px;">
-          Le provisionnement dynamique ne garantit pas la <strong>portabilité du stockage</strong> entre nœuds :<br/>
-          — avec un <strong>stockage réseau</strong> (NFS, CephFS, CSI Cloud…), les volumes sont accessibles de partout ;<br/>
-          — avec un <strong>disque local</strong>, le volume reste attaché à un seul nœud (géré par <code>nodeAffinity</code> ou <code>WaitForFirstConsumer</code>).  
-          👉 Ce modèle est pertinent uniquement avec un backend réseau partagé.
-        </blockquote>
-      
-        <h5 style="color:#007acc;">c. Comparatif</h5>
-        <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-          <thead style="background:#e6f2ff; color:#003366;">
-            <tr><th style="padding:8px;">Aspect</th><th style="padding:8px;">PV/PVC statiques</th><th style="padding:8px;">StorageClass dynamique</th></tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:8px; border:1px solid #ddd;">Création du volume</td><td>Manuelle</td><td>Automatique</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ddd;">Association PV–PVC</td><td>Basée sur correspondance</td><td>Gérée par le provisioner</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ddd;">Portabilité</td><td>Limitée</td><td>Optimale (stockage réseau)</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ddd;">Cas d’usage</td><td>Démonstration, local</td><td>Cluster multi-nœuds, cloud</td></tr>
-          </tbody>
-        </table>
-      
-        <hr style="border:0; border-top:2px solid #007acc; margin:25px 0;"/>
-      
-        <h4 style="color:#0099cc;">5.4 Modes d’accès, sécurité et typologie</h4>
-      
-        <h5 style="color:#007acc;">a. Modes d’accès</h5>
-        <table style="width:100%; border-collapse:collapse;">
-          <thead style="background:#003366; color:#fff;">
-            <tr><th style="padding:8px;">Mode</th><th style="padding:8px;">Signification</th><th style="padding:8px;">Usage</th></tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:8px; border:1px solid #ccc;">ReadWriteOnce (RWO)</td><td>Lecture/écriture par un seul nœud</td><td>Bases de données</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">ReadOnlyMany (ROX)</td><td>Lecture seule par plusieurs nœuds</td><td>Contenu statique</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">ReadWriteMany (RWX)</td><td>Lecture/écriture simultanée</td><td>NFS, CephFS</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">ReadWriteOncePod (RWOP)</td><td>Accès exclusif par un pod</td><td>Cas sensibles</td></tr>
-          </tbody>
-        </table>
-      
-        <h5 style="color:#007acc;">b. Sécurité et permissions</h5>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      securityContext:
-        runAsUser: 1000
-        fsGroup: 1000
-        </pre>
-      
-        <h5 style="color:#007acc;">c. Types de backend</h5>
-        <table style="width:100%; border-collapse:collapse;">
-          <thead style="background:#e6f2ff; color:#003366;">
-            <tr><th style="padding:8px;">Type</th><th style="padding:8px;">Description</th><th style="padding:8px;">Particularités</th></tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:8px; border:1px solid #ccc;">hostPath / local</td><td>Stockage local du nœud</td><td>Rapide mais non partagé</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">NFS</td><td>Partage réseau simple</td><td>Compatible RWX</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">CSI Driver</td><td>Interface standard</td><td>Supporte Ceph, EBS, Azure...</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">CephFS / RBD</td><td>Stockage distribué</td><td>Haute disponibilité</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">Cloud storage</td><td>EBS, Persistent Disk, etc.</td><td>Provisionnement dynamique</td></tr>
-          </tbody>
-        </table>
-      
-        <hr style="border:0; border-top:2px solid #007acc; margin:25px 0;"/>
-      
-        <h3 style="color:#006699;">6. StatefulSets et bases de données</h3>
-      
-        <h4 style="color:#0099cc;">6.1 Limites des Deployments</h4>
-        <p>
-          Les <strong>Deployments</strong> conviennent aux applications <em>stateless</em>.  
-          Pour les bases de données ou services à état, on utilise les <strong>StatefulSets</strong>.
-        </p>
-      
-        <blockquote style="background:#fff8e1; border-left:4px solid #ff9800; padding:10px;">
-          ⚠️ Kubernetes ne gère pas la cohérence interne des données (réplication, transactions).  
-          Cela reste du ressort du moteur SGBD (MySQL, PostgreSQL, MongoDB...).
-        </blockquote>
-      
-        <h4 style="color:#0099cc;">6.2 Caractéristiques d’un StatefulSet</h4>
-        <table style="width:100%; border-collapse:collapse;">
-          <thead style="background:#e6f2ff; color:#003366;">
-            <tr><th style="padding:8px;">Fonction</th><th style="padding:8px;">Description</th></tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:8px; border:1px solid #ccc;">Identité stable</td><td>Pods nommés séquentiellement (<code>app-0</code>, <code>app-1</code>...)</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">Volume dédié</td><td>Chaque pod possède son propre PVC</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">Ordre contrôlé</td><td>Création et suppression ordonnées</td></tr>
-            <tr><td style="padding:8px; border:1px solid #ccc;">Stabilité</td><td>Conservation du nom et du volume</td></tr>
-          </tbody>
-        </table>
-      
-        <h4 style="color:#0099cc;">6.3 Exemple : MariaDB avec StatefulSet</h4>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      apiVersion: apps/v1
-      kind: StatefulSet
-      metadata:
-        name: mariadb
-      spec:
-        serviceName: mariadb
-        replicas: 1
-        selector:
-          matchLabels:
-            app: mariadb
-        template:
-          metadata:
-            labels:
-              app: mariadb
-          spec:
-            containers:
-              - name: mariadb
-                image: mariadb:10.11
-                env:
-                  - name: MYSQL_ROOT_PASSWORD
-                    valueFrom:
-                      secretKeyRef:
-                        name: mariadb-secret
-                        key: root-password
-                ports:
-                  - containerPort: 3306
-                volumeMounts:
-                  - name: data
-                    mountPath: /var/lib/mysql
-        volumeClaimTemplates:
-          - metadata:
-              name: data
-            spec:
-              accessModes: ["ReadWriteOnce"]
-              resources:
-                requests:
-                  storage: 2Gi
-        </pre>
-      
-        <div style="background:#f3f9ff; border-left:4px solid #007acc; padding:10px;">
-          🔹 <code>volumeClaimTemplates</code> crée un PVC par pod (<code>data-mariadb-0</code>, etc.).  
-          🔹 Si <code>replicas&gt;1</code>, chaque instance est indépendante sans réplication configurée.  
-          🔹 Pour la cohérence : utiliser Galera, Group Replication et un Service Headless.
-        </div>
-      
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      kubectl get statefulsets
-      kubectl get pods -l app=mariadb
-      kubectl get pvc | grep mariadb
-        </pre>
-      
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      kubectl scale statefulset mariadb --replicas=3
-        </pre>
-      
-        <blockquote style="background:#fff8e1; border-left:4px solid #ff9800; padding:10px;">
-          Kubernetes orchestre les pods et volumes, mais pas la logique transactionnelle.
-        </blockquote>
-      
-        <h4 style="color:#0099cc;">6.5 ConfigMaps et Secrets</h4>
-        <pre style="background:#1e1e1e; color:#dcdcdc; padding:10px; border-radius:6px;">
-      apiVersion: v1
-      kind: Secret
-      metadata:
-        name: mariadb-secret
-      type: Opaque
-      data:
-        root-password: bXlzZWNyZXRwYXNzCg==
-        </pre>
-      
-        <p>
-          Les <strong>Secrets</strong> et <strong>ConfigMaps</strong> stockent configuration et mots de passe de manière sécurisée.  
-          Ils sont <em>namespaced</em> et liés au cycle de vie du déploiement.
-        </p>
-      
-        <hr style="border:0; border-top:2px solid #007acc; margin:25px 0;"/>
-      
-        <div style="background:#f3f9ff; border-left:5px solid #007acc; padding:10px 15px;">
-          <h4 style="margin-top:0;">🧠 Synthèse du Bloc 3</h4>
-          <ul>
-            <li>Les <strong>PV/PVC</strong> assurent la persistance des données.</li>
-            <li>Les <strong>StorageClasses</strong> permettent le provisionnement dynamique.</li>
-            <li>Ce modèle est efficace avec un <strong>stockage réseau</strong> partagé.</li>
-            <li>Les modes d’accès, droits et backends déterminent la souplesse du stockage.</li>
-            <li>Les <strong>StatefulSets</strong> gèrent les applications avec état, la cohérence restant applicative.</li>
-          </ul>
-          <p>💡 Kubernetes orchestre la <strong>durabilité</strong>, la <strong>stabilité</strong> et la <strong>persistance</strong> des applications distribuées.</p>
-        </div>
-      
-      </section>" style="width:100%; height:2400px; border:none;"></iframe>
-  </section>
+  </pre>
 
-  <!-- === PIED DE PAGE === -->
-  <footer style="background:#002b5c; color:white; margin-top:50px; padding:15px 20px; border-radius:10px;">
-    <p style="margin:0; font-size:0.95em;">
-      © Virtualisation Avancée – Cours CM3 | Kubernetes et persistance des applications
+  <div
+    style="background: #f3f9ff; border-left: 4px solid #007acc; padding: 10px"
+  >
+    🔹 <code>volumeClaimTemplates</code> crée un PVC par pod
+    (<code>data-mariadb-0</code>, etc.). 🔹 Si <code>replicas&gt;1</code>,
+    chaque instance est indépendante sans réplication configurée. 🔹 Pour la
+    cohérence : utiliser Galera, Group Replication et un Service Headless.
+  </div>
+
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+kubectl get statefulsets
+kubectl get pods -l app=mariadb
+kubectl get pvc | grep mariadb
+  </pre>
+
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+kubectl scale statefulset mariadb --replicas=3
+  </pre>
+
+  <blockquote
+    style="background: #fff8e1; border-left: 4px solid #ff9800; padding: 10px"
+  >
+    Kubernetes orchestre les pods et volumes, mais pas la logique
+    transactionnelle.
+  </blockquote>
+
+  <h4 style="color: #0099cc">6.5 ConfigMaps et Secrets</h4>
+  <pre
+    style="
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 10px;
+      border-radius: 6px;
+    "
+  >
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-secret
+type: Opaque
+data:
+  root-password: bXlzZWNyZXRwYXNzCg==
+  </pre>
+
+  <p>
+    Les <strong>Secrets</strong> et <strong>ConfigMaps</strong> stockent
+    configuration et mots de passe de manière sécurisée. Ils sont
+    <em>namespaced</em> et liés au cycle de vie du déploiement.
+  </p>
+
+  <hr style="border: 0; border-top: 2px solid #007acc; margin: 25px 0" />
+
+  <div
+    style="
+      background: #f3f9ff;
+      border-left: 5px solid #007acc;
+      padding: 10px 15px;
+    "
+  >
+    <h4 style="margin-top: 0">🧠 Synthèse du Bloc 3</h4>
+    <ul>
+      <li>Les <strong>PV/PVC</strong> assurent la persistance des données.</li>
+      <li>
+        Les <strong>StorageClasses</strong> permettent le provisionnement
+        dynamique.
+      </li>
+      <li>
+        Ce modèle est efficace avec un <strong>stockage réseau</strong> partagé.
+      </li>
+      <li>
+        Les modes d’accès, droits et backends déterminent la souplesse du
+        stockage.
+      </li>
+      <li>
+        Les <strong>StatefulSets</strong> gèrent les applications avec état, la
+        cohérence restant applicative.
+      </li>
+    </ul>
+    <p>
+      💡 Kubernetes orchestre la <strong>durabilité</strong>, la
+      <strong>stabilité</strong> et la <strong>persistance</strong> des
+      applications distribuées.
     </p>
-  </footer>
-
-</article>
+  </div>
+</section>
