@@ -1,6 +1,6 @@
 # CM3 – Gestion de la durabilité et de l’état dans Kubernetes
 
-## Bloc 1 enrichi — Du déploiement éphémère à la supervision du cluster
+## Bloc 1 — Du déploiement éphémère à la supervision du cluster
 
 ---
 
