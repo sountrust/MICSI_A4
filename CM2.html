@@ -895,35 +895,198 @@ graph LR
 
     <hr />
 
-    <h2>5️⃣ – L’Egress et les NetworkPolicies : contrôler le trafic sortant</h2>
+    <h2>
+      5️⃣ – Contrôler les communications : Egress, NetworkPolicies et Zero Trust
+    </h2>
+
     <p>
-      Par défaut, les Pods peuvent communiquer librement. Il faut donc
-      <strong>restreindre le trafic</strong> et appliquer le principe du
-      <em>moindre privilège</em>.
+      Par défaut, les Pods peuvent communiquer librement. Pour appliquer le
+      principe du
+      <strong>moindre privilège</strong>, il faut contrôler :
+    </p>
+    <ul>
+      <li>le <strong>trafic réseau</strong> (qui peut parler à qui) ;</li>
+      <li>
+        l’<strong>identité</strong> et l’<strong>authentification</strong> des
+        workloads (Zero Trust).
+      </li>
+    </ul>
+
+    <h3>5.1. Egress et NetworkPolicies : contrôler le trafic sortant</h3>
+    <p>
+      Une <code>NetworkPolicy</code> permet d’agir comme un pare-feu logique.
+      Dès qu’une policy <code>Egress</code> s’applique à un Pod,
+      <strong>tout le trafic sortant devient bloqué par défaut</strong>, et vous
+      devez autoriser explicitement les destinations nécessaires (DNS, bases de
+      données, APIs internes, etc.).
     </p>
 
-    <h3>5.2. Exemple de NetworkPolicy</h3>
+    <h4>5.1.1 Exemple de NetworkPolicy (Egress) : DNS + accès DB</h4>
     <pre><code>apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: restrict-egress
+  name: api-egress
   namespace: backend
 spec:
   podSelector:
     matchLabels:
       app: api
   policyTypes:
-    - Egress
+  - Egress
   egress:
-    - to:
-        - ipBlock:
-            cidr: 10.0.0.0/8
+  # Autoriser la résolution DNS (CoreDNS)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+  # Autoriser l'accès à la base de données (pods app=db dans le namespace data)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: data
+      podSelector:
+        matchLabels:
+          app: db
+    ports:
+    - protocol: TCP
+      port: 5432
 </code></pre>
 
     <p>
-      Cette politique interdit tout trafic sortant sauf vers le réseau interne
-      <code>10.0.0.0/8</code>.
+      Cette politique <strong>bloque tout le trafic sortant</strong> des Pods
+      <code>app=api</code> du namespace <code>backend</code>,
+      <strong>sauf</strong> :
     </p>
+    <ul>
+      <li>
+        les requêtes DNS vers CoreDNS (<code>kube-system</code>, port
+        <code>53</code> en UDP/TCP) ;
+      </li>
+      <li>
+        les connexions vers les Pods <code>app=db</code> du namespace
+        <code>data</code> sur <code>5432/TCP</code>.
+      </li>
+    </ul>
+
+    <p>
+      L’autorisation est faite <strong>par labels</strong> (namespace + pods),
+      ce qui évite de dépendre d’adresses IP éphémères (contrairement à
+      <code>ipBlock</code>).
+    </p>
+
+    <h3>
+      5.2. Zero Trust “Access” dans Kubernetes : identité + mTLS + autorisation
+    </h3>
+    <p>
+      Les <code>NetworkPolicies</code> contrôlent le
+      <strong>chemin réseau</strong>, mais elles ne fournissent pas :
+    </p>
+    <ul>
+      <li>l’<strong>authentification forte</strong> entre services ;</li>
+      <li>le <strong>chiffrement systématique</strong> du trafic interne ;</li>
+      <li>
+        des règles d’accès basées sur l’<strong>identité</strong> (service
+        accounts, workloads).
+      </li>
+    </ul>
+
+    <p>
+      Pour une approche <strong>Zero Trust</strong> complète, on utilise
+      généralement un <strong>service mesh</strong> (ex.
+      <strong>Istio</strong> ou <strong>Linkerd</strong>) afin d’appliquer :
+    </p>
+    <ul>
+      <li>
+        <strong>mTLS</strong> (chiffrement + authentification) entre workloads ;
+      </li>
+      <li>
+        des politiques d’<strong>autorisation</strong> basées sur l’identité (et
+        non sur l’IP) ;
+      </li>
+      <li>
+        un contrôle fin (service-to-service) et une traçabilité (télémétrie).
+      </li>
+    </ul>
+
+    <h4>5.2.1 Istio : activer le mTLS (mode STRICT) pour un namespace</h4>
+    <p>
+      Exemple : imposer le <strong>mTLS obligatoire</strong> dans le namespace
+      <code>backend</code> avec Istio.
+    </p>
+    <pre><code>apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: backend-mtls
+  namespace: backend
+spec:
+  mtls:
+    mode: STRICT
+</code></pre>
+
+    <p>
+      Avec ce réglage, les workloads du namespace <code>backend</code> refusent
+      les connexions qui ne sont pas en mTLS.
+    </p>
+
+    <h4>5.2.2 Istio : autoriser explicitement un appel (ex. API → DB)</h4>
+    <p>
+      Exemple : n’autoriser que le service <code>api</code> à joindre le service
+      <code>db</code> (principe “deny by default” + “allow by exception”).
+    </p>
+    <pre><code>apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: db-allow-only-api
+  namespace: data
+spec:
+  selector:
+    matchLabels:
+      app: db
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["backend"]
+        principals: ["cluster.local/ns/backend/sa/api"]
+</code></pre>
+
+    <p>
+      Ici, l’accès est basé sur l’<strong>identité</strong> (ServiceAccount
+      <code>api</code>) et non sur des IPs.
+    </p>
+
+    <h4>5.2.3 Linkerd : activer le chiffrement mTLS (approche mesh)</h4>
+    <p>
+      Linkerd propose également du mTLS automatique entre workloads “meshed”.
+      L’activation se fait généralement par <strong>injection</strong> et
+      déploiement des composants du mesh, puis par application des policies
+      propres à Linkerd (selon version et fonctionnalités activées).
+    </p>
+
+    <h3>5.3. À retenir (NetworkPolicy vs Service Mesh)</h3>
+    <ul>
+      <li>
+        <code>NetworkPolicy</code> : contrôle réseau L3/L4 (IPs/ports), utile
+        pour segmenter et limiter le trafic.
+      </li>
+      <li>
+        <strong>Service Mesh</strong> (Istio/Linkerd) : identité + mTLS +
+        autorisations applicatives (Zero Trust complet).
+      </li>
+      <li>
+        <strong>Approche recommandée</strong> : combiner les deux (segmentation
+        réseau + contrôle par identité).
+      </li>
+    </ul>
 
     <ul>
       <li><code>Ingress</code> = flux entrant vers les Pods.</li>
@@ -931,7 +1094,7 @@ spec:
       <li><code>NetworkPolicy</code> = pare-feu logique au niveau du Pod.</li>
       <li>
         <strong>Zero Trust</strong> : tout est fermé par défaut, ouvert par
-        exception.
+        exception (réseau + identité).
       </li>
     </ul>
 
