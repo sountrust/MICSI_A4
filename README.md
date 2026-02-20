@@ -1,64 +1,72 @@
-# 🧠 Cours Kubernetes – Architecture, déploiement et orchestration
+# 🧠 Cours Kubernetes – Architecture, déploiement et GitOps
 
 ## 🎯 Objectifs du module
 
-Ce module vise à comprendre **les principes fondamentaux de Kubernetes** à travers :
+Ce module vise à maîtriser **les principes fondamentaux de Kubernetes** et leur mise en œuvre **en conditions réalistes** :
 
 - des **cours magistraux (CM)** pour introduire les concepts et la théorie,
-- des **travaux dirigés (TD)** pour expérimenter pas à pas,
-- et des **supports pratiques** permettant la manipulation sur Minikube et Git.
+- des **travaux dirigés (TD)** pour pratiquer étape par étape,
+- une progression qui conduit vers une méthode de déploiement moderne : **GitOps avec Flux**.
 
-L’objectif est de rendre l’étudiant **autonome dans la mise en œuvre et l’observation d’un cluster Kubernetes**, du déploiement d’une simple application à la gestion de services exposés et isolés.
+L’objectif est de rendre l’étudiant **autonome dans l’exploitation d’un cluster Kubernetes local (Minikube)** : déploiement d’applications, exposition réseau, isolation, observabilité, puis automatisation des déploiements à partir de Git.
 
 ---
 
 ## 🗂️ Structure du dépôt
 
-| Dossier/Fichier    | Description                                                                                                                                                                                                       |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CM1.md`           | Introduction à la conteneurisation, Docker, et mise en place de Minikube. Comprend la transition entre Docker et Kubernetes, la découverte des composants d’un cluster et la manipulation initiale via `kubectl`. |
-| `CM2.md`           | Compréhension des fichiers YAML, création d’objets Kubernetes (Namespace, Deployment, Service, Ingress, NetworkPolicy). Introduction à la logique déclarative et à l’isolation des ressources.                    |
-| `TD1/`             | Travaux dirigés – Installation de Docker, Git et Minikube sous Linux. Vérifications d’environnement et configuration initiale du cluster.                                                                         |
-| `TD2/`             | Travaux dirigés – Création et déploiement d’une première application dans Minikube (depuis une image Docker). Découverte du `kubectl apply` et observation des Pods.                                              |
-| `TD3/`             | Travaux dirigés – Exploration du **Kubernetes Dashboard** et utilisation de **kubectl** pour consulter et interagir avec les objets. Introduction à Containerd et `crictl`.                                       |
-| `TD4/` _(à venir)_ | Travaux dirigés – Exposition d’applications avec Ingress et observation des métriques (Lens, Prometheus, metrics-server).                                                                                         |
-| `assets/`          | Schémas, captures et diagrammes Mermaid (architecture réseau, hiérarchie YAML, flux de données).                                                                                                                  |
+| Dossier/Fichier | Description                                                                                                                                                      |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CM1.md`        | Conteneurisation, Docker, et mise en place de Minikube. Transition Docker → Kubernetes, découverte des composants du cluster, premières manipulations `kubectl`. |
+| `CM2.md`        | Modèle déclaratif, structure YAML, objets Kubernetes (Namespace, Deployment, Service, Ingress, NetworkPolicy). Logique d’isolation et de connectivité interne.   |
+| `CM3.md`        | Exposition, observabilité et supervision : services, ingress, métriques, principes de monitoring et préparation au déploiement automatisé.                       |
+| `cm1-td/td1.md` | Mise en place de l’environnement de travail (outils, validation Minikube, premiers contrôles).                                                                   |
+| `cm1-td/td2.md` | Premier déploiement applicatif, observation des Pods/Services, premières opérations de diagnostic.                                                               |
+| `cm1-td/td3.md` | Inspection du cluster (Dashboard/CLI), compréhension des ressources et premières explorations réseau.                                                            |
+| `cm2-td/td4.md` | Ingress Controller avec **Traefik** en environnement local, exposition des applications et règles de routage.                                                    |
+| `cm2-td/td5.md` | Monitoring avec **Prometheus** : principes, déploiement, vérifications et lecture de métriques.                                                                  |
+| `cm2-td/td6.md` | Approfondissement : supervision, objets avancés, diagnostic et contrôle de la visibilité applicative.                                                            |
+| `cm3-td/td7.md` | Packaging applicatif avec Helm : recherche, installation, upgrade, rollback.                                                                                     |
+| `cm3-td/td8.md` | Déploiements complets avec Helm et bonnes pratiques (valeurs, namespaces, persistance).                                                                          |
+| `cm3-td/td9.md` | **GitOps avec Flux** : infrastructure (Traefik + Prometheus) et application (OwnCloud) déployées automatiquement depuis Git.                                     |
+| `assets/`       | Styles et ressources associées (ex. CSS pour export PDF).                                                                                                        |
+| `out/`          | Répertoire de sortie (ex. PDFs générés). Doit rester hors versionnement.                                                                                         |
 
 ---
 
 ## 🧩 Progression pédagogique
 
-### CM1 – Introduction à Kubernetes et conteneurisation
+### CM1 – Fondations : conteneurisation et cluster local
 
 - Du conteneur Docker à l’orchestrateur Kubernetes
 - Architecture d’un cluster : Control Plane, Nodes, Pods
-- Commandes de base `kubectl`, `minikube`
-- Installation et environnement de travail
+- Commandes de base : `kubectl`, `minikube`
+- Mise en place et validation de l’environnement
 
-**TD1, TD2 & TD3** : mise en pratique et premiers déploiements sur Minikube, exploration du tableau de bord et inspection des ressources avec `kubectl`.
-
----
-
-### CM2 – Structure, isolation et exposition
-
-- Définition et syntaxe du format YAML
-- Structure d’un manifest Kubernetes
-- Multi-ressources et logique déclarative
-- Notion de namespace, isolation logique
-- Exposition via Service et Ingress
-- Sécurité réseau avec les NetworkPolicies
-
-**TD4** : mise en place du monitoring, Ingress Controller (Traefik), métriques réseau.
+**TD1 à TD3** : mise en pratique sur Minikube, inspection des ressources, compréhension des objets et premiers diagnostics.
 
 ---
 
-### CM3 (prévisionnel) – Observabilité et supervision
+### CM2 – Déclaratif, réseau, isolation
 
-- Introduction à **Lens**, **Prometheus** et **metrics-server**
-- Visualisation des ressources et suivi du cluster
-- Monitoring des Pods et métriques système
-- Analyse des logs et scaling automatique (HPA)
-  **TD5** : Continuous deployment et automatisation par source de vérité GIT.
+- YAML : structure, lisibilité et bonnes pratiques
+- Manifests Kubernetes : `metadata`, `spec`, `selector`, labels
+- Namespaces : organisation et périmètre d’administration
+- Services & DNS interne
+- Ingress : exposition HTTP(S) via Traefik
+- NetworkPolicies : contrôle des flux
+
+**TD4 à TD6** : exposition réseau avec Traefik, supervision et premières approches d’observabilité.
+
+---
+
+### CM3 – Déploiement industrialisé : Helm puis GitOps
+
+- Helm : charts, releases, upgrade/rollback
+- Déploiement d’applications packagées et paramétrables
+- Infrastructure & applications pilotées par Git : **GitOps**
+- Introduction à Flux : synchronisation, réconciliation et traçabilité
+
+**TD7 à TD9** : Helm puis déploiement GitOps complet (Traefik + Prometheus + OwnCloud) à partir de deux dépôts Git.
 
 ---
 
@@ -67,9 +75,9 @@ L’objectif est de rendre l’étudiant **autonome dans la mise en œuvre et l�
 - Linux Ubuntu 22.04+ (VM ou bare-metal)
 - Docker Engine / Containerd
 - Minikube 1.33+
-- kubectl CLI
-- Git (pour cloner et versionner les TD)
-- (Optionnel) Lens pour visualisation graphique
+- kubectl
+- Git
+- (Optionnel) Lens
 
 ---
 
@@ -87,24 +95,3 @@ minikube start --cpus=6 --memory=8g
 kubectl cluster-info
 kubectl get nodes
 ```
-
----
-
-## 🧭 Navigation
-
-- 📘 [CM1 – Découverte de Kubernetes et Minikube](./CM1.md)
-- 📘 [CM2 – YAML, Namespaces et exposition réseau](./CM2.md)
-- 🧪 [TD1 – Installation et configuration](./cm1-td/TD1/)
-- 🧪 [TD2 – Premier déploiement](./cm1-td/TD2/)
-- 🧪 [TD3 – Dashboard et kubectl](./cm1-td/TD3/)
-
----
-
-## 📚 Licence et utilisation
-
-Ce support est destiné à un usage pédagogique dans le cadre du module _Administration de systèmes et services – Kubernetes_.
-Toute reproduction ou diffusion doit mentionner l’auteur et l’université.
-
----
-
-> _« Kubernetes n’est pas une technologie à apprendre, c’est un écosystème à apprivoiser. »_ 🌀
