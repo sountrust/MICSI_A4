@@ -1,4 +1,4 @@
-# 🧠 Cours Kubernetes – Architecture, déploiement et GitOps
+# 🧠 Cours Kubernetes – Architecture, déploiements et GitOps
 
 ## 🎯 Objectifs du module
 
