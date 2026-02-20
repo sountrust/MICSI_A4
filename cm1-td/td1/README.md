@@ -163,8 +163,10 @@ docker stop $(docker ps -q)
 ## 5️⃣ Charger l’image dans Minikube
 
 Construire l’image **directement dans le démon Docker de Minikube** :
+Vérifier que Docker est en marche et redémarrer minikube
 
 ```bash
+minikube start
 eval $(minikube -p minikube docker-env)
 docker build -t demo-web:1.0 .
 docker images | grep demo-web

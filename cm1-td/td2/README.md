@@ -70,7 +70,7 @@ services:
   web:
     build: .
     ports:
-      - "5000:5000"
+      - "5000:80"
     environment:
       - DB_HOST=db
       - DB_USER=app
@@ -249,7 +249,7 @@ spec:
         - name: web
           image: demo-web:1.0
           ports:
-            - containerPort: 5000
+            - containerPort: 80
           envFrom:
             - configMapRef:
                 name: web-config
@@ -287,7 +287,7 @@ spec:
     app: web
   ports:
     - port: 5000
-      targetPort: 5000
+      targetPort: 80
 ```
 
 Appliquer :
