@@ -815,40 +815,127 @@ Minikube exécute un véritable cluster Kubernetes destiné à l’apprentissage
 
 **Références :** [Objectif de Minikube](https://minikube.sigs.k8s.io/docs/faq/), [clusters multinœuds](https://minikube.sigs.k8s.io/docs/tutorials/multi_node/), [stockage local](https://minikube.sigs.k8s.io/docs/handbook/persistent_volumes/), [accès aux applications](https://minikube.sigs.k8s.io/docs/handbook/accessing/) et [Kubernetes en production](https://kubernetes.io/docs/setup/production-environment/).
 
-### 3) Topologie visuelle
+### 3) Comprendre les topologies : du poste local à plusieurs clusters
+
+Le tableau précédent décrit les exigences d’exploitation. Les schémas suivants montrent leur traduction dans l’organisation des machines : **où se trouvent les composants, qui pilote les applications et quelle panne peut affecter l’ensemble**.
+
+Les repères P0 à P3 sont des scénarios pédagogiques, pas des catégories officielles de Kubernetes ni des étapes obligatoires. On peut exploiter durablement un seul cluster si cela répond aux besoins. Le nombre de machines, leur hébergement et les outils associés dépendent de l’architecture retenue.
+
+**Repères de lecture :** le plan de contrôle (*Control Plane*) pilote le cluster ; les nœuds de travail (*workers*) exécutent les Pods. Les cadres représentent les limites d’un poste, d’un cluster ou d’un site. Les traits entre le plan de contrôle et les workers représentent leur relation de gestion, pas le trajet des requêtes applicatives. Le stockage et l’accès des utilisateurs ne sont pas dessinés ici.
+
+#### P0 — Apprendre sur un poste local
+
+Minikube permet d’étudier les objets et les mécanismes Kubernetes sur son ordinateur. Dans cet exemple à un nœud, le plan de contrôle et les applications partagent le même nœud. Celui-ci s’exécute dans une VM ou un conteneur selon le driver.
 
 ```mermaid
 flowchart TB
-  subgraph Dev["P0 — Dev local"]
-    L["MicroK8s (1 node)"]
+  subgraph Poste["Poste de travail"]
+    subgraph Cluster["Cluster Kubernetes local — Minikube"]
+      subgraph Noeud["Un nœud dans cet exemple"]
+        CP["Plan de contrôle"]
+        APP["Pods des applications"]
+        CP --- APP
+      end
+    end
   end
 
-  subgraph P1["P1 — Single-cluster"]
-    CP1["Control Plane géré"]
-    NP1["Node Pool"]
-    CP1 --> NP1
-  end
-
-  subgraph P2["P2 — HA intra-région"]
-    CP2["Control Plane HA"]
-    NP2a["Pool Compute"]
-    NP2b["Pool IO"]
-    CP2 --> NP2a
-    CP2 --> NP2b
-  end
-
-  subgraph P3["P3 — Multi-clusters"]
-    C1["Cluster A"]
-    C2["Cluster B"]
-  end
-
-  L --> CP1
-  CP1 --> CP2
-  CP2 --> C1
-  CP2 --> C2
+  classDef composant fill:#e8eef5,stroke:#466482,color:#172b4d;
+  class CP,APP composant;
 ```
 
-> **Lecture** : on passe d’un _monocluster mononœud_ à des pools de nœuds avec HA, puis à des multi‑clusters pour la résilience géographique.
+**Apport :** manipuler un véritable cluster avec peu de moyens. **Limite :** si le poste est indisponible, tout le cluster local l’est aussi. Créer plusieurs nœuds Minikube sur ce même poste ne supprime pas cette dépendance.
+
+---
+
+#### P1 — Répartir les applications dans un cluster multinœud
+
+On conserve un seul cluster, mais ses workers peuvent maintenant être hébergés sur plusieurs machines. Le plan de contrôle dispose de plusieurs destinations pour les Pods. Un *pool de nœuds* désigne un groupe de workers ayant des caractéristiques communes ; ce regroupement n’est pas obligatoire.
+
+```mermaid
+flowchart TB
+  subgraph Cluster["Un cluster Kubernetes"]
+    CP["Plan de contrôle commun"]
+    subgraph Workers["Nœuds de travail"]
+      W1["Worker 1 — Pods applicatifs"]
+      W2["Worker 2 — Pods applicatifs"]
+    end
+    CP --- W1
+    CP --- W2
+  end
+
+  classDef composant fill:#e8eef5,stroke:#466482,color:#172b4d;
+  class CP,W1,W2 composant;
+```
+
+**Apport :** davantage de capacité et la possibilité de répartir les applications. **Limite :** plusieurs workers ne suffisent pas à assurer la haute disponibilité. Il faut aussi examiner le plan de contrôle et les dépendances communes : deux VM sur un même serveur physique peuvent tomber ensemble. Un service managé peut prendre en charge le plan de contrôle, mais ce n’est pas une obligation de cette topologie.
+
+---
+
+#### P2 — Réduire les points de panne dans une région
+
+L’objectif devient de continuer à fonctionner malgré certaines défaillances. On répartit les composants sur des **domaines de panne distincts**, c’est-à-dire des ensembles qui ne dépendent pas tous du même équipement ou du même site. Dans le cloud, une région peut contenir plusieurs zones de disponibilité.
+
+```mermaid
+flowchart TB
+  subgraph Region["Une région — un seul cluster Kubernetes"]
+    CP["Plan de contrôle redondé entre domaines de panne"]
+    subgraph Z1["Zone A"]
+      W1["Workers — réplicas applicatifs"]
+    end
+    subgraph Z2["Zone B"]
+      W2["Workers — réplicas applicatifs"]
+    end
+    subgraph Z3["Zone C"]
+      W3["Workers — réplicas applicatifs"]
+    end
+    CP --- W1
+    CP --- W2
+    CP --- W3
+  end
+
+  classDef composant fill:#e8eef5,stroke:#466482,color:#172b4d;
+  class CP,W1,W2,W3 composant;
+```
+
+**Apport :** limiter l’impact d’une panne de machine ou de zone, selon la conception du cluster. Le bloc « plan de contrôle » représente ici plusieurs instances, dont le détail est volontairement omis. **Limite :** la disponibilité de l’application dépend aussi du placement de ses réplicas, de la capacité restante, du réseau et des données. Des pools spécialisés, par exemple pour le calcul ou les entrées-sorties, répondent à des besoins de charge ; ils ne prouvent pas à eux seuls une redondance.
+
+---
+
+#### P3 — Exploiter plusieurs clusters indépendants
+
+On franchit une nouvelle frontière : chaque cluster possède son propre plan de contrôle, ses workers et son état. Les clusters peuvent être dans une même région ou, comme dans l’exemple ci-dessous, dans des régions différentes. Aucun n’est automatiquement le contrôleur de l’autre.
+
+```mermaid
+flowchart TB
+  subgraph R1["Région A"]
+    subgraph C1["Cluster A"]
+      CP1["Plan de contrôle A"]
+      W1["Workers et applications A"]
+      CP1 --- W1
+    end
+  end
+
+  subgraph R2["Région B"]
+    subgraph C2["Cluster B"]
+      CP2["Plan de contrôle B"]
+      W2["Workers et applications B"]
+      CP2 --- W2
+    end
+  end
+
+  OPS["Exploitation coordonnée : déploiements et supervision"]
+  OPS -.-> CP1
+  OPS -.-> CP2
+
+  classDef composant fill:#e8eef5,stroke:#466482,color:#172b4d;
+  class CP1,W1,CP2,W2 composant;
+```
+
+**Apport :** séparer les périmètres d’exploitation et préparer, si nécessaire, une reprise sur un autre cluster ou une autre région. Les pointillés indiquent une coordination à mettre en place, par exemple avec des outils de déploiement communs. **Limite :** plusieurs clusters ne répliquent pas automatiquement les données et ne basculent pas spontanément le trafic. La continuité ou la reprise d’activité demande une stratégie explicite et des tests.
+
+**Lecture d’ensemble :** P0 privilégie l’apprentissage local ; P1 distribue l’exécution ; P2 traite les défaillances au sein d’un cluster ; P3 sépare plusieurs clusters et pose la question de leur coordination. Chaque choix doit répondre à un besoin, car il augmente aussi les responsabilités d’exploitation.
+
+**Références :** [Minikube multinœud](https://minikube.sigs.k8s.io/docs/tutorials/multi_node/), [architecture d’un cluster Kubernetes](https://kubernetes.io/docs/concepts/architecture/), [conception d’un environnement de production](https://kubernetes.io/docs/setup/production-environment/) et [répartition sur plusieurs zones](https://kubernetes.io/docs/setup/best-practices/multiple-zones/).
 
 ### 4) Vocabulaire minimal « prod »
 
