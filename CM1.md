@@ -722,16 +722,26 @@ Kubernetes ne remplace pas la virtualisation — il s’appuie dessus.
 
 ```mermaid
 flowchart TB
-  subgraph Infra[Infrastructure physique]
-    A1[Serveurs physiques]
+  subgraph Infra["Infrastructure physique"]
+    A1["Serveurs physiques"]
   end
-  subgraph Virt[Couche de virtualisation]
-    V1[VMs : Nodes du cluster]
+
+  subgraph Virt["Couche de virtualisation"]
+    V1["VMs : Nodes du cluster"]
   end
-  subgraph K8s[Cluster Kubernetes]
-    N1[Pods / Deployments / Services]
+
+  subgraph K8s["Cluster Kubernetes"]
+    N1["Pods / Deployments / Services"]
   end
+
   A1 --> V1 --> N1
+
+  classDef couche fill:#e8eef5,stroke:#466482,color:#172b4d;
+  class A1,V1,N1 couche;
+
+  style Infra fill:#f8fafc,stroke:#a8b8c8,color:#172b4d
+  style Virt fill:#f8fafc,stroke:#a8b8c8,color:#172b4d
+  style K8s fill:#f8fafc,stroke:#a8b8c8,color:#172b4d
 ```
 
 Virtualisation = fondation matérielle abstraite.\
