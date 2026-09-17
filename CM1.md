@@ -12,8 +12,6 @@
 
 > Une application monolithique regroupe toutes les fonctionnalités dans un seul programme.
 
----
-
 ## Caractéristiques
 
 - Une base de code unique, un seul processus, un seul cycle de déploiement.
@@ -33,15 +31,11 @@ Dans les années 1990–2000, la majorité des applications d’entreprise étai
 - Mises à jour nécessitant l’arrêt complet du service.
 - Scalabilité verticale (plus de matériel).
 
----
-
 ### Les causes de l’évolution
 
 - Complexification des systèmes.
 - Émergence du web et besoin d’intégration.
 - Nouveaux modèles DevOps / CI/CD.
-
----
 
 ### Les premières interconnexions
 
@@ -51,7 +45,8 @@ Dans les années 1990–2000, la majorité des applications d’entreprise étai
 | **REST**    | 2000  | Communication simple HTTP (JSON / XML)       |
 | **gRPC**    | 2015  | Protocole binaire performant basé sur HTTP/2 |
 
-Ces standards ont permis la communication entre modules indépendants, amorçant la transition vers les microservices.
+Ces standards ont permis la communication entre modules indépendants,\
+amorçant la transition vers les microservices.
 
 ---
 
@@ -64,8 +59,6 @@ Il :
 - Implémente une fonction métier unique (ex : facturation, login…).
 - S’exécute indépendamment.
 - Possède son cycle de vie propre.
-
----
 
 ### Communication
 
@@ -84,8 +77,6 @@ Les microservices échangent via des APIs légères, favorisant :
 | Mythe                          | Réalité                                                                                |
 | ------------------------------ | -------------------------------------------------------------------------------------- |
 | Un microservice = un conteneur | Le microservice est une idée logicielle, le conteneur est un environnement d’exécution |
-
----
 
 ### En résumé
 
@@ -185,7 +176,8 @@ java -jar monolith.jar
 python3 -m http.server 8080
 ```
 
-> Le service devient indépendant, mais pour en gérer des dizaines ou centaines, il faut les isoler, les connecter et les orchestrer.
+> Le service devient indépendant, mais pour en gérer des dizaines ou centaines, il faut les isoler,\
+> les connecter et les orchestrer.
 
 Ce besoin mènera naturellement vers la virtualisation et la conteneurisation.
 
@@ -287,13 +279,13 @@ Kubernetes peut exécuter les conteneurs sur des machines physiques ou virtuelle
 
 # 3 – Conteneurisation : l’isolation logique
 
-> **But** — Comprendre comment la conteneurisation isole les processus applicatifs dans un même système d’exploitation, prépare la modularisation des applications et introduit la logique d’orchestration.
-
----
+> **But** — Comprendre comment la conteneurisation isole les processus applicatifs dans un même système\
+> d’exploitation, prépare la modularisation des applications et introduit la logique d’orchestration.
 
 ## Définition & objectifs
 
-Un **conteneur** = un processus isolé + son environnement d’exécution minimal (bibliothèques, configuration, dépendances).\
+Un **conteneur** = un processus isolé + son environnement d’exécution minimal (bibliothèques, configuration,\
+dépendances).\
 Contrairement à une VM, il partage le noyau du système hôte, ce qui le rend léger et rapide.
 
 **Objectifs principaux :**
@@ -367,7 +359,8 @@ docker run -d -p 5000:5000 myapp:1.0
 
 ## Composition de services (Docker Compose)
 
-Quand plusieurs conteneurs doivent collaborer (ex. application + base de données), on utilise un fichier de composition (`docker-compose.yml`).
+Quand plusieurs conteneurs doivent collaborer (ex. application + base de données),\
+on utilise un fichier de composition (`docker-compose.yml`).
 
 ```yaml
 version: "3.9"
@@ -400,7 +393,8 @@ docker compose ps
 docker compose logs -f
 ```
 
-Compose introduit la déclaration d’un état attendu (déjà une approche « déclarative ») et la gestion de dépendances entre services.
+Compose introduit la déclaration d’un état attendu (déjà une approche « déclarative ») et la gestion de\
+dépendances entre services.
 
 ---
 
@@ -436,7 +430,8 @@ C’est ce besoin qui mène à des orchestrateurs comme Kubernetes.
 | **Réseau**                    | `bridge` interne                        | `CNI` (réseau de cluster)   |
 | **Fichier**                   | `docker-compose.yml`                    | `manifestes YAML`           |
 
-Kubernetes généralise et distribue les concepts de Compose à grande échelle (cluster multi-nœuds, haute disponibilité, auto-guérison).
+Kubernetes généralise et distribue les concepts de Compose à grande échelle (cluster multi-nœuds,\
+haute disponibilité, auto-guérison).
 
 ---
 
@@ -445,7 +440,8 @@ Kubernetes généralise et distribue les concepts de Compose à grande échelle 
 - Un conteneur isole un processus dans un même noyau Linux.
 - Docker et Podman exploitent des mécanismes système (namespaces, cgroups, overlayfs).
 - Docker Compose introduit une première déclaration d’infrastructure applicative.
-- La montée en complexité des environnements distribués conduit naturellement à Kubernetes, qui orchestre ces conteneurs à l’échelle du cluster.
+- La montée en complexité des environnements distribués conduit naturellement à Kubernetes,\
+  qui orchestre ces conteneurs à l’échelle du cluster.
 
 ---
 
@@ -462,7 +458,9 @@ Apparition des orchestrateurs : Docker Swarm, Mesos, Kubernetes
 
 ## Orchestration & Kubernetes — « état désiré » et réconciliation
 
-> **Objectif** — Comprendre comment Kubernetes orchestre des applications conteneurisées en appliquant un modèle déclaratif (« état désiré ») et des boucles de réconciliation. Découvrir les objets clés (Pod, Deployment, Service, Ingress) et la mécanique d’auto-rétablissement (_self‑healing_).
+> **Objectif** — Comprendre comment Kubernetes orchestre des applications conteneurisées en appliquant un modèle\
+> déclaratif (« état désiré ») et des boucles de réconciliation. Découvrir les objets clés (Pod, Deployment,\
+> Service, Ingress) et la mécanique d’auto-rétablissement (_self‑healing_).
 
 ---
 
@@ -481,17 +479,23 @@ Apparition des orchestrateurs : Docker Swarm, Mesos, Kubernetes
 - **Impératif** : « exécute ces commandes dans cet ordre » → décrit les opérations à effectuer.
 - **Déclaratif** : « voici l’état désiré du système » → le contrôleur converge vers cet état.
 
-> **Parallèle IaC** : Terraform/Ansible décrivent l’infra ; Kubernetes décrit l’état applicatif (et réseau/stockage associés) au niveau service.
+> **Parallèle IaC** : Terraform/Ansible décrivent l’infra ; Kubernetes décrit l’état applicatif (et\
+> réseau/stockage associés) au niveau service.
 
 ---
 
 ## Boucle de réconciliation (vue système)
 
-La boucle est présentée en trois étapes pour suivre le passage de la déclaration à l’exécution. Le point d’arrivée d’un schéma est repris au début du suivant. Cette décomposition sert à la lecture : les composants travaillent en continu, de manière asynchrone, en échangeant des informations par l’API.
+La boucle est présentée en trois étapes pour suivre le passage de la déclaration à l’exécution.\
+Le point d’arrivée d’un schéma est repris au début du suivant. Cette décomposition sert à la lecture :\
+les composants travaillent en continu, de manière asynchrone, en échangeant des informations par l’API.
 
 ### 1. Déclarer l’état souhaité
 
-L’utilisateur décrit une ressource, par exemple un Deployment, dans un manifest. `kubectl apply` transmet la configuration à l’API Server. Si la requête est autorisée et la ressource valide, l’API Server enregistre l’objet dans etcd. Les autres composants consultent cet état par l’API, sans accéder directement à etcd.
+L’utilisateur décrit une ressource, par exemple un Deployment, dans un manifest.\
+`kubectl apply` transmet la configuration à l’API Server. Si la requête est autorisée et la ressource valide,\
+l’API Server enregistre l’objet dans etcd. Les autres composants consultent cet état par l’API,\
+sans accéder directement à etcd.
 
 ```mermaid
 flowchart TB
@@ -509,13 +513,17 @@ flowchart TB
   class E raccord;
 ```
 
-**Point de passage :** l’objet existe dans le cluster. Cela ne signifie pas encore que les conteneurs correspondants sont en cours d’exécution.
+**Point de passage :** l’objet existe dans le cluster. Cela ne signifie pas encore que les conteneurs\
+correspondants sont en cours d’exécution.
 
 ---
 
 ### 2. Observer et décider
 
-Les contrôleurs observent les objets et leurs changements via l’API Server. Chacun rapproche l’état observé de l’état souhaité pour les ressources dont il a la charge. Lorsqu’un écart nécessite de nouveaux Pods, ils en demandent la création par l’API. Pour un Deployment, cette action passe par un ReplicaSet, qui maintient le nombre de Pods attendu.
+Les contrôleurs observent les objets et leurs changements via l’API Server.\
+Chacun rapproche l’état observé de l’état souhaité pour les ressources dont il a la charge.\
+Lorsqu’un écart nécessite de nouveaux Pods, ils en demandent la création par l’API. Pour un Deployment,\
+cette action passe par un ReplicaSet, qui maintient le nombre de Pods attendu.
 
 ```mermaid
 flowchart TB
@@ -536,13 +544,18 @@ flowchart TB
   class A,F raccord;
 ```
 
-**Point de passage :** le troisième schéma suit le cas de nouveaux Pods à exécuter. D’autres écarts peuvent demander une mise à jour ou une suppression de ressources. La conformité ne met pas fin à la surveillance.
+**Point de passage :** le troisième schéma suit le cas de nouveaux Pods à exécuter.\
+D’autres écarts peuvent demander une mise à jour ou une suppression de ressources.\
+La conformité ne met pas fin à la surveillance.
 
 ---
 
 ### 3. Exécuter et réobserver
 
-Le Scheduler repère les Pods sans affectation, choisit un nœud et enregistre cette affectation par l’API. Le kubelet du nœud concerné observe les Pods qui lui sont affectés et demande au runtime de lancer leurs conteneurs. Il remonte ensuite leur état à l’API Server, afin que les contrôleurs puissent poursuivre la réconciliation.
+Le Scheduler repère les Pods sans affectation, choisit un nœud et enregistre cette affectation par l’API.\
+Le kubelet du nœud concerné observe les Pods qui lui sont affectés et demande au runtime de lancer leurs\
+conteneurs. Il remonte ensuite leur état à l’API Server, afin que les contrôleurs puissent poursuivre la\
+réconciliation.
 
 ```mermaid
 flowchart TB
@@ -564,7 +577,9 @@ flowchart TB
   class A,G raccord;
 ```
 
-**Point de passage :** les informations remontées alimentent une nouvelle observation. Les flèches présentent la succession logique des actions ; elles ne représentent pas une chaîne d’appels directs entre tous les composants.
+**Point de passage :** les informations remontées alimentent une nouvelle observation.\
+Les flèches présentent la succession logique des actions ; elles ne représentent pas une chaîne d’appels\
+directs entre tous les composants.
 
 **Références :** [Contrôleurs Kubernetes](https://kubernetes.io/docs/concepts/architecture/controller/) et [composants du cluster](https://kubernetes.io/docs/concepts/overview/components/).
 
@@ -572,7 +587,9 @@ flowchart TB
 
 ### Vue d’ensemble
 
-Le schéma suivant conserve la vue synthétique du mécanisme. Les trois étapes précédentes explicitent les échanges par l’API et le placement des Pods, simplifiés dans cette représentation. La convergence est un état atteint, et non l’arrêt de la boucle.
+Le schéma suivant conserve la vue synthétique du mécanisme. Les trois étapes précédentes explicitent les\
+échanges par l’API et le placement des Pods, simplifiés dans cette représentation.\
+La convergence est un état atteint, et non l’arrêt de la boucle.
 
 ```mermaid
 flowchart LR
@@ -699,7 +716,8 @@ spec:
 
 # 5 – La virtualisation au service de l’orchestration
 
-> **Objectif** — Comprendre comment la virtualisation peut soutenir l’orchestration des conteneurs : isolation, élasticité et abstraction des ressources.
+> **Objectif** — Comprendre comment la virtualisation peut soutenir l’orchestration des conteneurs : isolation,\
+> élasticité et abstraction des ressources.
 
 ---
 
@@ -707,7 +725,8 @@ spec:
 
 Kubernetes peut s’appuyer sur la virtualisation, sans l’exiger.
 
-- La virtualisation fournit le socle d’isolation matérielle : chaque nœud du cluster (control plane ou worker) tourne souvent sur une machine virtuelle (VM).
+- La virtualisation fournit le socle d’isolation matérielle : chaque nœud du cluster (control plane ou worker)\
+  tourne souvent sur une machine virtuelle (VM).
 - Elle permet la gestion des ressources physiques : CPU, RAM, disque, réseau.
 - Elle offre la flexibilité nécessaire à l’orchestrateur pour :
   - créer ou supprimer des nœuds selon la charge,
@@ -719,7 +738,8 @@ Kubernetes peut s’appuyer sur la virtualisation, sans l’exiger.
 ## Exemple selon les environnements
 
 - **Sur un laptop** : Minikube crée un cluster local dans des VM ou des conteneurs selon le driver utilisé.
-- **Sur un cloud provider** : les nœuds sont souvent des VM fournies par l’infrastructure (AWS EC2, GCP Compute Engine, Azure VM, OpenStack…), comme dans le schéma ci-dessous.
+- **Sur un cloud provider** : les nœuds sont souvent des VM fournies par l’infrastructure (AWS EC2,\
+  GCP Compute Engine, Azure VM, OpenStack…), comme dans le schéma ci-dessous.
 
 ```mermaid
 flowchart TB
@@ -786,7 +806,10 @@ La virtualisation facilite l’adaptation de l’infrastructure :
 
 ## Hiérarchie de clusters : du laptop à la production
 
-> **But** — Donner aux étudiants une grille de lecture : _ce qu’ils manipulent en TD avec Minikube_ vs _ce qu’une équipe opère en production_.
+> **But** — Donner aux étudiants une grille de lecture : _ce qu’ils manipulent en TD avec Minikube_ vs\
+> _ce qu’une équipe opère en production_.
+
+---
 
 ### 1) Paliers d’évolution
 
@@ -795,9 +818,12 @@ La virtualisation facilite l’adaptation de l’infrastructure :
 - **P2 — Haute disponibilité** : limiter les points de panne au sein d’un cluster.
 - **P3 — Multicluster** : exploiter et coordonner plusieurs clusters indépendants.
 
+---
+
 ### 2) Apprentissage, développement et production
 
-Minikube fournit un cluster Kubernetes local pour apprendre, développer et tester avant déploiement. En production, l’objectif est de fournir un service fiable aux utilisateurs.
+Minikube fournit un cluster Kubernetes local pour apprendre, développer et tester avant déploiement.\
+En production, l’objectif est de fournir un service fiable aux utilisateurs.
 
 | Domaine | Apprentissage et développement avec Minikube | Kubernetes en production |
 | --- | --- | --- |
@@ -809,23 +835,41 @@ Minikube fournit un cluster Kubernetes local pour apprendre, développer et test
 | **Supervision** | Observer et diagnostiquer avec les logs et métriques. | Surveiller le service et traiter les alertes. |
 | **Déploiements** | Essayer les manifests et les mises à jour. | Automatiser, tracer et prévoir le retour arrière. |
 
-**Et la préproduction ?** Elle sert à valider une version avant sa mise en production, dans un environnement représentatif de la cible. Minikube permet au développeur de préparer cette validation localement ; il ne reproduit pas à lui seul les conditions de disponibilité, de charge et d’intégration de la production.
+**Et la préproduction ?** Elle sert à valider une version avant sa mise en production,\
+dans un environnement représentatif de la cible. Minikube permet au développeur de préparer cette validation\
+localement ; il ne reproduit pas à lui seul les conditions de disponibilité,\
+de charge et d’intégration de la production.
 
-**À retenir :** les mécanismes Kubernetes restent les mêmes ; le niveau de validation et les exigences d’exploitation changent selon l’usage.
+**À retenir :** les mécanismes Kubernetes restent les mêmes ; le niveau de validation et les exigences\
+d’exploitation changent selon l’usage.
 
 **Références :** [Usages de Minikube](https://minikube.sigs.k8s.io/docs/faq/) et [Kubernetes en production](https://kubernetes.io/docs/setup/production-environment/).
 
+---
+
 ### 3) Comprendre les topologies : du poste local à plusieurs clusters
 
-Le tableau précédent décrit les exigences d’exploitation. Les schémas suivants montrent leur traduction dans l’organisation des machines : **où se trouvent les composants, qui pilote les applications et quelle panne peut affecter l’ensemble**.
+Le tableau précédent décrit les exigences d’exploitation. Les schémas suivants montrent leur traduction dans\
+l’organisation des machines :\
+**où se trouvent les composants, qui pilote les applications et quelle panne peut affecter l’ensemble**.
 
-Les repères P0 à P3 sont des scénarios pédagogiques, pas des catégories officielles de Kubernetes ni des étapes obligatoires. On peut exploiter durablement un seul cluster si cela répond aux besoins. Le nombre de machines, leur hébergement et les outils associés dépendent de l’architecture retenue.
+Les repères P0 à P3 sont des scénarios pédagogiques, pas des catégories officielles de Kubernetes ni des\
+étapes obligatoires. On peut exploiter durablement un seul cluster si cela répond aux besoins.\
+Le nombre de machines, leur hébergement et les outils associés dépendent de l’architecture retenue.
 
-**Repères de lecture :** le plan de contrôle (*Control Plane*) pilote le cluster ; les nœuds de travail (*workers*) exécutent les Pods. Les cadres représentent les limites d’un poste, d’un cluster ou d’un site. Les traits entre le plan de contrôle et les workers représentent leur relation de gestion, pas le trajet des requêtes applicatives. Le stockage et l’accès des utilisateurs ne sont pas dessinés ici.
+**Repères de lecture :** le plan de contrôle (*Control Plane*) pilote le cluster ;\
+les nœuds de travail (*workers*) exécutent les Pods. Les cadres représentent les limites d’un poste,\
+d’un cluster ou d’un site. Les traits entre le plan de contrôle et les workers représentent leur relation de\
+gestion, pas le trajet des requêtes applicatives. Le stockage et l’accès des utilisateurs ne sont pas\
+dessinés ici.
+
+---
 
 #### P0 — Apprendre sur un poste local
 
-Minikube permet d’étudier les objets et les mécanismes Kubernetes sur son ordinateur. Dans cet exemple à un nœud, le plan de contrôle et les applications partagent le même nœud. Celui-ci s’exécute dans une VM ou un conteneur selon le driver.
+Minikube permet d’étudier les objets et les mécanismes Kubernetes sur son ordinateur.\
+Dans cet exemple à un nœud, le plan de contrôle et les applications partagent le même nœud.\
+Celui-ci s’exécute dans une VM ou un conteneur selon le driver.
 
 ```mermaid
 flowchart TB
@@ -843,13 +887,18 @@ flowchart TB
   class CP,APP composant;
 ```
 
-**Apport :** manipuler un véritable cluster avec peu de moyens. **Limite :** si le poste est indisponible, tout le cluster local l’est aussi. Créer plusieurs nœuds Minikube sur ce même poste ne supprime pas cette dépendance.
+**Apport :** manipuler un véritable cluster avec peu de moyens. **Limite :** si le poste est indisponible,\
+tout le cluster local l’est aussi. Créer plusieurs nœuds Minikube sur ce même poste ne supprime pas cette\
+dépendance.
 
 ---
 
 #### P1 — Répartir les applications dans un cluster multinœud
 
-On conserve un seul cluster, mais ses workers peuvent maintenant être hébergés sur plusieurs machines. Le plan de contrôle dispose de plusieurs destinations pour les Pods. Un *pool de nœuds* désigne un groupe de workers ayant des caractéristiques communes ; ce regroupement n’est pas obligatoire.
+On conserve un seul cluster, mais ses workers peuvent maintenant être hébergés sur plusieurs machines.\
+Le plan de contrôle dispose de plusieurs destinations pour les Pods.\
+Un *pool de nœuds* désigne un groupe de workers ayant des caractéristiques communes ;\
+ce regroupement n’est pas obligatoire.
 
 ```mermaid
 flowchart TB
@@ -867,13 +916,20 @@ flowchart TB
   class CP,W1,W2 composant;
 ```
 
-**Apport :** davantage de capacité et la possibilité de répartir les applications. **Limite :** plusieurs workers ne suffisent pas à assurer la haute disponibilité. Il faut aussi examiner le plan de contrôle et les dépendances communes : deux VM sur un même serveur physique peuvent tomber ensemble. Un service managé peut prendre en charge le plan de contrôle, mais ce n’est pas une obligation de cette topologie.
+**Apport :** davantage de capacité et la possibilité de répartir les applications.\
+**Limite :** plusieurs workers ne suffisent pas à assurer la haute disponibilité.\
+Il faut aussi examiner le plan de contrôle et les dépendances communes :\
+deux VM sur un même serveur physique peuvent tomber ensemble. Un service managé peut prendre en charge le\
+plan de contrôle, mais ce n’est pas une obligation de cette topologie.
 
 ---
 
 #### P2 — Réduire les points de panne dans une région
 
-L’objectif devient de continuer à fonctionner malgré certaines défaillances. On répartit les composants sur des **domaines de panne distincts**, c’est-à-dire des ensembles qui ne dépendent pas tous du même équipement ou du même site. Dans le cloud, une région peut contenir plusieurs zones de disponibilité.
+L’objectif devient de continuer à fonctionner malgré certaines défaillances.\
+On répartit les composants sur des **domaines de panne distincts**,\
+c’est-à-dire des ensembles qui ne dépendent pas tous du même équipement ou du même site. Dans le cloud,\
+une région peut contenir plusieurs zones de disponibilité.
 
 ```mermaid
 flowchart TB
@@ -897,13 +953,20 @@ flowchart TB
   class CP,W1,W2,W3 composant;
 ```
 
-**Apport :** limiter l’impact d’une panne de machine ou de zone, selon la conception du cluster. Le bloc « plan de contrôle » représente ici plusieurs instances, dont le détail est volontairement omis. **Limite :** la disponibilité de l’application dépend aussi du placement de ses réplicas, de la capacité restante, du réseau et des données. Des pools spécialisés, par exemple pour le calcul ou les entrées-sorties, répondent à des besoins de charge ; ils ne prouvent pas à eux seuls une redondance.
+**Apport :** limiter l’impact d’une panne de machine ou de zone, selon la conception du cluster.\
+Le bloc « plan de contrôle » représente ici plusieurs instances, dont le détail est volontairement omis.\
+**Limite :** la disponibilité de l’application dépend aussi du placement de ses réplicas,\
+de la capacité restante, du réseau et des données. Des pools spécialisés,\
+par exemple pour le calcul ou les entrées-sorties, répondent à des besoins de charge ;\
+ils ne prouvent pas à eux seuls une redondance.
 
 ---
 
 #### P3 — Exploiter plusieurs clusters indépendants
 
-On franchit une nouvelle frontière : chaque cluster possède son propre plan de contrôle, ses workers et son état. Les clusters peuvent être dans une même région ou, comme dans l’exemple ci-dessous, dans des régions différentes. Aucun n’est automatiquement le contrôleur de l’autre.
+On franchit une nouvelle frontière : chaque cluster possède son propre plan de contrôle,\
+ses workers et son état. Les clusters peuvent être dans une même région ou, comme dans l’exemple ci-dessous,\
+dans des régions différentes. Aucun n’est automatiquement le contrôleur de l’autre.
 
 ```mermaid
 flowchart TB
@@ -931,19 +994,31 @@ flowchart TB
   class CP1,W1,CP2,W2 composant;
 ```
 
-**Apport :** séparer les périmètres d’exploitation et préparer, si nécessaire, une reprise sur un autre cluster ou une autre région. Les pointillés indiquent une coordination à mettre en place, par exemple avec des outils de déploiement communs. **Limite :** plusieurs clusters ne répliquent pas automatiquement les données et ne basculent pas spontanément le trafic. La continuité ou la reprise d’activité demande une stratégie explicite et des tests.
+**Apport :** séparer les périmètres d’exploitation et préparer, si nécessaire,\
+une reprise sur un autre cluster ou une autre région. Les pointillés indiquent une coordination à mettre en\
+place, par exemple avec des outils de déploiement communs. **Limite :** plusieurs clusters ne répliquent pas\
+automatiquement les données et ne basculent pas spontanément le trafic.\
+La continuité ou la reprise d’activité demande une stratégie explicite et des tests.
 
-**Lecture d’ensemble :** P0 privilégie l’apprentissage local ; P1 distribue l’exécution ; P2 traite les défaillances au sein d’un cluster ; P3 sépare plusieurs clusters et pose la question de leur coordination. Chaque choix doit répondre à un besoin, car il augmente aussi les responsabilités d’exploitation.
+**Lecture d’ensemble :** P0 privilégie l’apprentissage local ; P1 distribue l’exécution ;\
+P2 traite les défaillances au sein d’un cluster ; P3 sépare plusieurs clusters et pose la question de leur\
+coordination. Chaque choix doit répondre à un besoin, car il augmente aussi les responsabilités\
+d’exploitation.
 
 **Références :** [Minikube multinœud](https://minikube.sigs.k8s.io/docs/tutorials/multi_node/), [architecture d’un cluster Kubernetes](https://kubernetes.io/docs/concepts/architecture/), [conception d’un environnement de production](https://kubernetes.io/docs/setup/production-environment/) et [répartition sur plusieurs zones](https://kubernetes.io/docs/setup/best-practices/multiple-zones/).
+
+---
 
 ### 4) Vocabulaire minimal « prod »
 
 - Node pool (tailles/machines dédiées), Cluster Autoscaler (ajoute/retire des nœuds).
-- HPA (nombre de réplicas), VPA (ressources des Pods), PDB (budgets de disruptions), PodAntiAffinity (répartition).
+- HPA (nombre de réplicas), VPA (ressources des Pods), PDB (budgets de disruptions),\
+  PodAntiAffinity (répartition).
 - StorageClass/CSI, RWX/RWO, snapshot & backup.
 - Ingress Controller + LoadBalancer; DNS externe; cert‑manager.
 - RBAC, NetworkPolicy, PSA, Secret management (KMS/External Secrets).
+
+---
 
 ### 5) Points à vérifier : de Minikube à la production
 
@@ -956,4 +1031,5 @@ flowchart TB
 7. **Déploiements** : procédure reproductible et retour arrière ; Helm ou GitOps selon les besoins.
 8. **Résilience** : sauvegardes et tests de reprise ; redondance et autoscaling selon les besoins.
 
-> **Message clé pour les TD** : Minikube permet d’apprendre Kubernetes. En production, la configuration et l’exploitation doivent répondre aux besoins des applications.
+> **Message clé pour les TD** : Minikube permet d’apprendre Kubernetes. En production,\
+> la configuration et l’exploitation doivent répondre aux besoins des applications.
