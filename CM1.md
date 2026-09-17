@@ -795,26 +795,25 @@ La virtualisation facilite l’adaptation de l’infrastructure :
 - **P2 — Haute disponibilité** : limiter les points de panne au sein d’un cluster.
 - **P3 — Multicluster** : exploiter et coordonner plusieurs clusters indépendants.
 
-### 2) Minikube en TD et Kubernetes en production
+### 2) Apprentissage, développement et production
 
-Minikube exécute un véritable cluster Kubernetes destiné à l’apprentissage, au développement et aux tests locaux. La comparaison porte donc sur la configuration et les conditions d’exploitation. Minikube peut créer plusieurs nœuds sur un même poste ; cela ne fournit pas une tolérance à la panne de ce poste.
+Minikube fournit un cluster Kubernetes local pour apprendre, développer et tester avant déploiement. En production, l’objectif est de fournir un service fiable aux utilisateurs.
 
-| Domaine | Avec Minikube en TD | Kubernetes en production |
+| Domaine | Apprentissage et développement avec Minikube | Kubernetes en production |
 | --- | --- | --- |
-| **Control Plane** | Créé et configuré par Minikube ; généralement un seul nœud dans les premiers exercices. | Autogéré ou managé ; disponibilité, sauvegarde de l’état et restauration à organiser selon les exigences. |
-| **Workers** | Un ou plusieurs nœuds locaux, exécutés dans des conteneurs ou des VM selon le driver utilisé. | Nœuds physiques ou virtuels ; capacité, répartition et remplacement à prévoir. Pools et autoscaling selon les besoins. |
-| **Réseau (CNI)** | Configuration dépendant du driver et du CNI ; prise en charge des NetworkPolicies à vérifier pour les exercices. | Connectivité et isolation maîtrisées, avec un CNI compatible avec les politiques retenues. |
-| **Stockage** | Provisionnement local `hostPath` courant ; les données restent liées au nœud et au stockage du poste. | Backend et pilote adaptés aux données ; modes d’accès, disponibilité, sauvegardes et restauration à définir. |
-| **Ingress** | Contrôleur installé pour les exercices ; accès selon le driver, par réseau local, redirection de port ou tunnel. | Contrôleur et exposition réseau dimensionnés ; équilibrage de charge, redondance et éventuel WAF selon l’architecture. |
-| **Certificats** | API protégée par TLS ; HTTPS applicatif à configurer séparément selon l’exercice. | Confiance, noms DNS, expiration et renouvellement à gérer ; certificats publics ou PKI interne, automatisation possible. |
-| **Sécurité** | Accès administrateur souvent utilisé pour apprendre ; isolation et droits à configurer explicitement. | Moindre privilège, contrôle des Pods, protection des Secrets et traçabilité des accès. |
-| **Images** | Images chargées localement avec `minikube image load` ou téléchargées depuis un registre. | Images versionnées, origine contrôlée, analyse des vulnérabilités et gestion des accès aux registres. |
-| **Observabilité** | `kubectl`, logs et outils de supervision introduits progressivement dans les TD. | Collecte durable des métriques et logs, alertes et procédures d’intervention ; traces selon les besoins. |
-| **Déploiements** | Manifests avec `kubectl`, puis Helm et automatisation selon la progression pédagogique. | Changements reproductibles, versionnés et traçables ; CI/CD, Helm ou GitOps selon l’organisation, avec retour arrière prévu. |
+| **Infrastructure** | Un ou plusieurs nœuds sur le poste. | Capacité et disponibilité adaptées au service. |
+| **Réseau et accès** | Tester Services, Ingress et règles réseau. | Maîtriser l’exposition, le DNS et les certificats. |
+| **Stockage** | Données de test, souvent stockées localement. | Persistance, sauvegardes et restauration. |
+| **Sécurité** | Expérimenter les droits et l’isolation. | Appliquer le moindre privilège et protéger les Secrets. |
+| **Images** | Construire et tester les images applicatives. | Déployer des versions identifiées et contrôlées. |
+| **Supervision** | Observer et diagnostiquer avec les logs et métriques. | Surveiller le service et traiter les alertes. |
+| **Déploiements** | Essayer les manifests et les mises à jour. | Automatiser, tracer et prévoir le retour arrière. |
 
-**À retenir :** les objets et les mécanismes Kubernetes étudiés avec Minikube restent applicables en production. Ce qui change est l’infrastructure, la configuration et la responsabilité d’exploitation ; les extensions installées et les capacités disponibles doivent être vérifiées dans chaque environnement.
+**Et la préproduction ?** Elle sert à valider une version avant sa mise en production, dans un environnement représentatif de la cible. Minikube permet au développeur de préparer cette validation localement ; il ne reproduit pas à lui seul les conditions de disponibilité, de charge et d’intégration de la production.
 
-**Références :** [Objectif de Minikube](https://minikube.sigs.k8s.io/docs/faq/), [clusters multinœuds](https://minikube.sigs.k8s.io/docs/tutorials/multi_node/), [stockage local](https://minikube.sigs.k8s.io/docs/handbook/persistent_volumes/), [accès aux applications](https://minikube.sigs.k8s.io/docs/handbook/accessing/) et [Kubernetes en production](https://kubernetes.io/docs/setup/production-environment/).
+**À retenir :** les mécanismes Kubernetes restent les mêmes ; le niveau de validation et les exigences d’exploitation changent selon l’usage.
+
+**Références :** [Usages de Minikube](https://minikube.sigs.k8s.io/docs/faq/) et [Kubernetes en production](https://kubernetes.io/docs/setup/production-environment/).
 
 ### 3) Comprendre les topologies : du poste local à plusieurs clusters
 
