@@ -1,41 +1,41 @@
-# 📘 Table des matières
+# Table des matières
 
-- [1️⃣ – Du monolithe aux microservices](#1️⃣--du-monolithe-aux-microservices)
-- [2️⃣ – Virtualisation : l’isolation matérielle](#2️⃣--virtualisation--lisolation-matérielle)
-- [3️⃣ – Conteneurisation : l’isolation logique](#3️⃣--conteneurisation--lisolation-logique)
-- [4️⃣ – Kubernetes : orchestrer les conteneurs virtualisés](#4️⃣--kubernetes--orchestrer-les-conteneurs-virtualisés)
-- [5️⃣ – La virtualisation au service de l’orchestration](#5️⃣--la-virtualisation-au-service-de-lorchestration)
+- [1 – Du monolithe aux microservices](#1--du-monolithe-aux-microservices)
+- [2 – Virtualisation : l’isolation matérielle](#2--virtualisation--lisolation-matérielle)
+- [3 – Conteneurisation : l’isolation logique](#3--conteneurisation--lisolation-logique)
+- [4 – Kubernetes : orchestrer les conteneurs virtualisés](#4--kubernetes--orchestrer-les-conteneurs-virtualisés)
+- [5 – La virtualisation au service de l’orchestration](#5--la-virtualisation-au-service-de-lorchestration)
 
 ---
 
-# 1️⃣ – Du monolithe aux microservices
+# 1 – Du monolithe aux microservices
 
 > **Une application monolithique** regroupe toutes les fonctionnalités dans un seul programme.
 
 ---
 
-## ⚙️ Caractéristiques
+## Caractéristiques
 
 - Une **base de code unique**, un seul processus, un seul cycle de déploiement.
-- Simplicité initiale ✅ mais forte **dépendance interne** ❌ entre les modules.
+- Simplicité initiale mais forte **dépendance interne** entre les modules.
 - Tout changement ou panne impacte **l’ensemble du système**.
 
-📚 **Lien recommandé :**  
+**Lien recommandé :**  
 [BD Kubernetes par Google Cloud](https://cloud.google.com/kubernetes-engine/kubernetes-comic/)
 
 ---
 
-## 🕰️ Historique et contexte d’évolution
+## Historique et contexte d’évolution
 
 Dans les années **1990–2000**, la majorité des applications d’entreprise étaient **monolithiques** :
 
 - Architecture **client-serveur**
-- Mises à jour nécessitant l’arrêt complet du service 🛑
+- Mises à jour nécessitant l’arrêt complet du service
 - Scalabilité **verticale** (plus de matériel)
 
 ---
 
-### 🚀 Les causes de l’évolution
+### Les causes de l’évolution
 
 - **Complexification** des systèmes
 - **Émergence du web** et besoin d’intégration
@@ -43,7 +43,7 @@ Dans les années **1990–2000**, la majorité des applications d’entreprise �
 
 ---
 
-### 🌐 Les premières interconnexions
+### Les premières interconnexions
 
 | Technologie | Année | Description                                  |
 | ----------- | ----- | -------------------------------------------- |
@@ -51,15 +51,15 @@ Dans les années **1990–2000**, la majorité des applications d’entreprise �
 | **REST**    | 2000  | Communication simple HTTP (JSON / XML)       |
 | **gRPC**    | 2015  | Protocole binaire performant basé sur HTTP/2 |
 
-💬 Ces standards ont permis la communication entre modules indépendants, amorçant la **transition vers les microservices**.
+Ces standards ont permis la communication entre modules indépendants, amorçant la **transition vers les microservices**.
 
 ---
 
-## 🔍 Qu’est-ce qu’un microservice ?
+## Qu’est-ce qu’un microservice ?
 
 Un **microservice** = une **unité fonctionnelle autonome** d’une application.
 
-🧩 Il :
+Il :
 
 - Implémente une **fonction métier unique** (ex : facturation, login…)
 - S’exécute **indépendamment**
@@ -67,32 +67,32 @@ Un **microservice** = une **unité fonctionnelle autonome** d’une application.
 
 ---
 
-### 🌉 Communication
+### Communication
 
 Les microservices échangent via des **APIs légères**, favorisant :
 
-- la **modularité** du code 🧠
-- la **tolérance aux pannes** ⚡
-- la **scalabilité horizontale** 📈
+- la **modularité** du code
+- la **tolérance aux pannes**
+- la **scalabilité horizontale**
 
-> ⚠️ Mais cette liberté ajoute une **complexité d’infrastructure** : réseau, monitoring, orchestration…
+> Mais cette liberté ajoute une **complexité d’infrastructure** : réseau, monitoring, orchestration…
 
 ---
 
-## 🐳 Microservice vs Conteneur
+## Microservice vs Conteneur
 
-| ❌ Mythe                       | ✔️ Réalité                                                                                     |
+| Mythe                          | Réalité                                                                                        |
 | ------------------------------ | ---------------------------------------------------------------------------------------------- |
 | Un microservice = un conteneur | Le microservice est **une idée logicielle**, le conteneur est **un environnement d’exécution** |
 
 ---
 
-### 🧠 En résumé :
+### En résumé :
 
 - **Microservice** → concept fonctionnel
 - **Conteneur** → mécanisme technique
 
-💡 Un conteneur **héberge souvent** un microservice :
+Un conteneur **héberge souvent** un microservice :
 
 - Inclut code + dépendances + runtime
 - Assure **cohérence** entre environnements
@@ -100,22 +100,22 @@ Les microservices échangent via des **APIs légères**, favorisant :
 
 ---
 
-## 🚢 Pourquoi la conteneurisation est essentielle
+## Pourquoi la conteneurisation est essentielle
 
 La conteneurisation répond aux limites du déploiement manuel.
 
-✅ Avantages :
+Avantages :
 
 - Environnement **portable, standardisé, isolé**
 - **Remplacement** plutôt que modification
 - **Interopérabilité** multi-plateforme
 - **Déploiement simplifié** et **résilient**
 
-💡 Ces propriétés — _immutabilité_ et _interopérabilité_ — sont la base du **cloud-native** orchestré par **Kubernetes**.
+Ces propriétés — _immutabilité_ et _interopérabilité_ — sont la base du **cloud-native** orchestré par **Kubernetes**.
 
 ---
 
-## ⚠️ Limites du modèle monolithique
+## Limites du modèle monolithique
 
 - Difficulté d’évolution et de correction
 - Scalabilité **verticale uniquement**
@@ -128,54 +128,54 @@ Exemple :
 java -jar application-complete.jar
 ```
 
-> 🧱 Un seul binaire contenant API, UI, logique métier et données.
+> Un seul binaire contenant API, UI, logique métier et données.
 
 ---
 
-## 🧩 Vers la modularité : l’idée des microservices
+## Vers la modularité : l’idée des microservices
 
 - Chaque service = **code + dépendances + base de données**
 - Communication via **API (HTTP, gRPC, message bus)**
 - **Scalabilité horizontale** ciblée
-- **CI/CD** facilité 🎯
+- **CI/CD** facilité
 
 ---
 
-## 🧠 Vue architecturale
+## Vue architecturale
 
-| Aspect            | 🧱 Monolithe  | 🧩 Microservices     |
+| Aspect            | Monolithe     | Microservices        |
 | ----------------- | ------------- | -------------------- |
-| Couplage          | Fort 🔗       | Faible 🔓            |
+| Couplage          | Fort          | Faible               |
 | Déploiement       | Unique        | Indépendant          |
 | Scalabilité       | Verticale     | Horizontale          |
 | Résilience        | Panne globale | Isolement des pannes |
-| Complexité réseau | Faible        | Élevée ⚙️            |
+| Complexité réseau | Faible        | Élevée               |
 
-> 👉 Les microservices déplacent la complexité **du code vers l’infrastructure**.
+> Les microservices déplacent la complexité **du code vers l’infrastructure**.
 
 ---
 
-## 🧰 Problème nouveau : l’exécution de tous ces services
+## Problème nouveau : l’exécution de tous ces services
 
 Chaque microservice doit :
 
-- Être **isolé** de manière fiable 🧳
-- **Communiquer** avec les autres services 🌐
-- Être **mis à jour** sans perturber le reste ♻️
+- Être **isolé** de manière fiable
+- **Communiquer** avec les autres services
+- Être **mis à jour** sans perturber le reste
 
-➡️ Cela demande un **mécanisme d’isolation et de gestion** :
+Cela demande un **mécanisme d’isolation et de gestion** :
 
-- **Virtualisation** pour séparer les environnements 💻
-- **Conteneurisation** pour isoler les processus 🧱
+- **Virtualisation** pour séparer les environnements
+- **Conteneurisation** pour isoler les processus
 
 Les deux sont **complémentaires** :
 
-- Virtualisation → base matérielle ⚙️
-- Conteneurisation → flexibilité logicielle 🧩
+- Virtualisation → base matérielle
+- Conteneurisation → flexibilité logicielle
 
 ---
 
-## 💡 Exemple de transition pratique
+## Exemple de transition pratique
 
 ```bash
 # Monolithe initial
@@ -187,15 +187,15 @@ python3 -m http.server 8080
 
 > Le service devient indépendant, mais pour en gérer **des dizaines ou centaines**, il faut les **isoler**, les **connecter** et les **orchestrer**.
 
-➡️ Ce besoin mènera naturellement vers la **virtualisation et la conteneurisation**.
+Ce besoin mènera naturellement vers la **virtualisation et la conteneurisation**.
 
 ---
 
-# 2️⃣ – Virtualisation : l’isolation matérielle
+# 2 – Virtualisation : l’isolation matérielle
 
 > La virtualisation permet d’exécuter plusieurs environnements sur une même machine physique.
 
-## 🔍 Définition
+## Définition
 
 La **virtualisation** crée plusieurs **machines virtuelles (VM)** à partir de ressources physiques :
 
@@ -204,7 +204,7 @@ La **virtualisation** crée plusieurs **machines virtuelles (VM)** à partir de 
 
 ---
 
-## 🧩 Types d’hyperviseurs
+## Types d’hyperviseurs
 
 ### Type 1 — _Bare Metal_
 
@@ -224,11 +224,11 @@ La **virtualisation** crée plusieurs **machines virtuelles (VM)** à partir de 
 
 ---
 
-## 🧠 Rôle de l’hyperviseur
+## Rôle de l’hyperviseur
 
-- Alloue dynamiquement les ressources 💾
-- Isole les environnements 🔒
-- Agrège ou fractionne le matériel selon les besoins ⚙️
+- Alloue dynamiquement les ressources
+- Isole les environnements
+- Agrège ou fractionne le matériel selon les besoins
 
 ```
 Matériel physique (CPU, RAM, disque)
@@ -240,29 +240,29 @@ VM1 (Linux) | VM2 (Windows) | VM3 (Ubuntu)
 
 ---
 
-## ✅ Avantages de la virtualisation
+## Avantages de la virtualisation
 
-- Isolation complète 🧱
-- Mutualisation du matériel 💰
-- Portabilité 🧳
-- Flexibilité 🧠
-- Abstraction matérielle 🔌
+- Isolation complète
+- Mutualisation du matériel
+- Portabilité
+- Flexibilité
+- Abstraction matérielle
 
-💡 Exemple : un serveur physique héberge plusieurs VMs (DB, web, stockage).
+Exemple : un serveur physique héberge plusieurs VMs (DB, web, stockage).
 
 ---
 
-## ⚠️ Limites
+## Limites
 
 - **Surcharge mémoire** (chaque VM a son OS)
-- **Démarrage lent** 🐢
-- **Gestion complexe** ⚙️
+- **Démarrage lent**
+- **Gestion complexe**
 
-➡️ Naissance de l’**Infrastructure as Code (IaC)** 💻
+Naissance de l’**Infrastructure as Code (IaC)**
 
 ---
 
-## ⚙️ Infrastructure as Code (IaC)
+## Infrastructure as Code (IaC)
 
 > L’IaC décrit l’infrastructure comme du **code déclaratif**.
 
@@ -270,33 +270,33 @@ VM1 (Linux) | VM2 (Windows) | VM3 (Ubuntu)
 - Automatisation de la **création et configuration**
 - Facilite **versionnage, reproductibilité, CI/CD**
 
-🧰 **Outils IaC :** Terraform, OpenTofu, Ansible, Puppet, Chef, CloudFormation, Pulumi.
+**Outils IaC :** Terraform, OpenTofu, Ansible, Puppet, Chef, CloudFormation, Pulumi.
 
 ---
 
-## 🐳 De la virtualisation à la conteneurisation
+## De la virtualisation à la conteneurisation
 
 > La conteneurisation **ne remplace pas** la virtualisation, elle s’appuie dessus.
 
-- Les **VMs** assurent l’isolation matérielle 🔒
-- Les **conteneurs** assurent l’isolation logicielle 🧩
+- Les **VMs** assurent l’isolation matérielle
+- Les **conteneurs** assurent l’isolation logicielle
 
-💡 Kubernetes combine la **robustesse** des VMs et la **légèreté** des conteneurs.
+Kubernetes combine la **robustesse** des VMs et la **légèreté** des conteneurs.
 
 ---
 
-# 3️⃣ – Conteneurisation : l’isolation logique
+# 3 – Conteneurisation : l’isolation logique
 
 > **But** — Comprendre comment la conteneurisation isole les processus applicatifs dans un même système d’exploitation, prépare la modularisation des applications et introduit la logique d’orchestration.
 
 ---
 
-## 🧠 Définition & objectifs
+## Définition & objectifs
 
 Un **conteneur** = un **processus isolé** + son environnement d’exécution minimal (bibliothèques, configuration, dépendances).  
 Contrairement à une VM, il **partage le noyau** du système hôte, ce qui le rend **léger** et **rapide**.
 
-🎯 Objectifs principaux :
+Objectifs principaux :
 
 - **Portabilité** → un même conteneur fonctionne sur tout hôte compatible.
 - **Immutabilité** → le conteneur ne change pas : on le reconstruit plutôt que le modifier.
@@ -305,7 +305,7 @@ Contrairement à une VM, il **partage le noyau** du système hôte, ce qui le re
 
 ---
 
-## 🧩 Mécanismes Linux
+## Mécanismes Linux
 
 Les conteneurs reposent sur des fonctionnalités natives du noyau Linux :
 
@@ -315,11 +315,11 @@ Les conteneurs reposent sur des fonctionnalités natives du noyau Linux :
 - **UnionFS / OverlayFS** → superposent les couches de fichiers (lecture seule + overlay d’écriture).
 - **Capabilities / seccomp / AppArmor** → restreignent les permissions et appels systèmes.
 
-💡 Ces mécanismes sont transparents à l’utilisateur : Docker, Podman ou containerd les utilisent sous le capot.
+Ces mécanismes sont transparents à l’utilisateur : Docker, Podman ou containerd les utilisent sous le capot.
 
 ---
 
-## 🧱 Image et exécution
+## Image et exécution
 
 Une **image de conteneur** contient :
 
@@ -334,11 +334,11 @@ sudo docker run -d -p 8080:80 nginx:1.25
 curl http://localhost:8080
 ```
 
-➡️ Le conteneur expose un service HTTP isolé, sans affecter l’hôte.
+Le conteneur expose un service HTTP isolé, sans affecter l’hôte.
 
 ---
 
-## 🧰 Dockerfile : construction d’une image
+## Dockerfile : construction d’une image
 
 ```dockerfile
 # Exemple : application minimale Node.js
@@ -365,7 +365,7 @@ docker run -d -p 5000:5000 myapp:1.0
 
 ---
 
-## ⚙️ Composition de services (Docker Compose)
+## Composition de services (Docker Compose)
 
 Quand plusieurs conteneurs doivent collaborer (ex. application + base de données), on utilise un **fichier de composition** (`docker-compose.yml`).
 
@@ -400,11 +400,11 @@ docker compose ps
 docker compose logs -f
 ```
 
-🧩 Compose introduit la **déclaration d’un état attendu** (déjà une approche “déclarative”) et la **gestion de dépendances entre services**.
+Compose introduit la **déclaration d’un état attendu** (déjà une approche “déclarative”) et la **gestion de dépendances entre services**.
 
 ---
 
-## 🔒 Bonnes pratiques (conteneurs en production)
+## Bonnes pratiques (conteneurs en production)
 
 - Utiliser des **images minimales** (`alpine`, `distroless`).
 - Éviter l’exécution en `root` dans le conteneur.
@@ -414,18 +414,18 @@ docker compose logs -f
 
 ---
 
-## 🧩 Transition vers l’orchestration
+## Transition vers l’orchestration
 
 Lorsque le nombre de conteneurs augmente :
 
 - Il devient nécessaire de gérer leur **cycle de vie**, leur **réseau** et leur **mise à jour**.
 - Docker Compose atteint ses limites pour les clusters multi-hôtes.
 
-➡️ C’est ce besoin qui mène à des orchestrateurs comme **Kubernetes**.
+C’est ce besoin qui mène à des orchestrateurs comme **Kubernetes**.
 
 ---
 
-## 🔁 Parallèle Docker Compose ↔️ Manifeste Kubernetes
+## Parallèle Docker Compose ↔ Manifeste Kubernetes
 
 | Concept                       | Docker Compose                          | Kubernetes                  |
 | ----------------------------- | --------------------------------------- | --------------------------- |
@@ -436,11 +436,11 @@ Lorsque le nombre de conteneurs augmente :
 | **Réseau**                    | `bridge` interne                        | `CNI` (réseau de cluster)   |
 | **Fichier**                   | `docker-compose.yml`                    | `manifestes YAML`           |
 
-💡 Kubernetes généralise et distribue les concepts de Compose à grande échelle (cluster multi-nœuds, haute disponibilité, auto-guérison).
+Kubernetes généralise et distribue les concepts de Compose à grande échelle (cluster multi-nœuds, haute disponibilité, auto-guérison).
 
 ---
 
-## 🧭 À retenir
+## À retenir
 
 - Un conteneur isole un **processus** dans un **même noyau Linux**.
 - Docker et Podman exploitent des mécanismes système (namespaces, cgroups, overlayfs).
@@ -449,16 +449,16 @@ Lorsque le nombre de conteneurs augmente :
 
 ---
 
-# 4️⃣ – Kubernetes : orchestrer les conteneurs virtualisés
+# 4 – Kubernetes : orchestrer les conteneurs virtualisés
 
 Quand plusieurs conteneurs doivent coopérer :
 
-- Automatiser les déploiements ⚙️
-- Gérer le réseau et les dépendances 🌐
-- Assurer la tolérance aux pannes 💪
-- Monter en charge 📈
+- Automatiser les déploiements
+- Gérer le réseau et les dépendances
+- Assurer la tolérance aux pannes
+- Monter en charge
 
-➡️ Apparition des **orchestrateurs** : Docker Swarm, Mesos, **Kubernetes** 🚀
+Apparition des **orchestrateurs** : Docker Swarm, Mesos, **Kubernetes**
 
 ## Orchestration & Kubernetes — "état désiré" et réconciliation
 
@@ -466,7 +466,7 @@ Quand plusieurs conteneurs doivent coopérer :
 
 ---
 
-## 🎯 Résultats d'apprentissage
+## Résultats d'apprentissage
 
 - Expliquer le principe **déclaratif** : on décrit _ce qu'on veut_, pas _comment le faire_.
 - Décrire le cycle **réconciliation → action → observation** dans Kubernetes.
@@ -476,7 +476,7 @@ Quand plusieurs conteneurs doivent coopérer :
 
 ---
 
-## 🧠 Déclaratif vs impératif
+## Déclaratif vs impératif
 
 - **Impératif** : "exécute ces commandes dans cet ordre" → fragile, non idempotent.
 - **Déclaratif** : "voici **l'état désiré** du système" → le contrôleur converge vers cet état.
@@ -485,7 +485,7 @@ Quand plusieurs conteneurs doivent coopérer :
 
 ---
 
-## 🔁 Boucle de réconciliation (vue système)
+## Boucle de réconciliation (vue système)
 
 ```mermaid
 flowchart LR
@@ -507,7 +507,7 @@ flowchart LR
 
 ---
 
-## 🧱 Objets fondamentaux
+## Objets fondamentaux
 
 - **Pod** : plus petite unité déployable (un ou plusieurs conteneurs + réseau/volumes partagés).
 - **ReplicaSet** : garantit _n_ réplicas identiques d'un Pod (généré par un Deployment).
@@ -519,7 +519,7 @@ flowchart LR
 
 ---
 
-## 📄 Pod minimal (lecture seule)
+## Pod minimal (lecture seule)
 
 ```yaml
 apiVersion: v1
@@ -543,7 +543,7 @@ spec:
 
 ---
 
-## 📦 Deployment (état désiré réplicas=3)
+## Deployment (état désiré réplicas=3)
 
 ```yaml
 apiVersion: apps/v1
@@ -575,7 +575,7 @@ spec:
 
 ---
 
-## 🌐 Service + Ingress (exposition HTTP locale)
+## Service + Ingress (exposition HTTP locale)
 
 ```yaml
 apiVersion: v1
@@ -609,13 +609,13 @@ spec:
                   number: 80
 ```
 
-# 5️⃣ – La virtualisation au service de l’orchestration
+# 5 – La virtualisation au service de l’orchestration
 
 > **Objectif** — Comprendre comment la virtualisation soutient les mécanismes d’orchestration des conteneurs et pourquoi Kubernetes repose encore sur elle pour garantir isolation, élasticité et abstraction des ressources.
 
 ---
 
-## ⚙️ Virtualisation et orchestration : une relation de dépendance
+## Virtualisation et orchestration : une relation de dépendance
 
 Kubernetes ne remplace pas la virtualisation — il **s’appuie** dessus.
 
@@ -628,7 +628,7 @@ Kubernetes ne remplace pas la virtualisation — il **s’appuie** dessus.
 
 ---
 
-## 💻 Exemple selon les environnements
+## Exemple selon les environnements
 
 - **Sur un laptop** : `MicroK8s` ou `Minikube` virtualisent implicitement les composants Kubernetes (API Server, Scheduler, kubelet…) dans des VM ou conteneurs isolés.
 - **Sur un cloud provider** : Kubernetes planifie les Pods sur des VM orchestrées par le fournisseur (AWS EC2, GCP Compute Engine, Azure VM, OpenStack…).
@@ -647,13 +647,13 @@ flowchart TB
   A1 --> V1 --> N1
 ```
 
-➡️ **Virtualisation** = fondation matérielle abstraite.  
-➡️ **Conteneurisation** = unité d’exécution logique.  
-➡️ **Orchestration (K8s)** = pilotage global et automatisé.
+**Virtualisation** = fondation matérielle abstraite.  
+**Conteneurisation** = unité d’exécution logique.  
+**Orchestration (K8s)** = pilotage global et automatisé.
 
 ---
 
-## 🧠 Complémentarité des couches
+## Complémentarité des couches
 
 | Niveau          | Technologie      | Rôle principal                                | Exemple                 |
 | --------------- | ---------------- | --------------------------------------------- | ----------------------- |
@@ -663,7 +663,7 @@ flowchart TB
 
 ---
 
-## 🌐 L’élasticité grâce à la virtualisation
+## L’élasticité grâce à la virtualisation
 
 La virtualisation permet à Kubernetes d’être **élastique** et **résilient** :
 
@@ -675,18 +675,18 @@ La virtualisation permet à Kubernetes d’être **élastique** et **résilient*
 
 ---
 
-## 🔍 Conclusion scientifique
+## Conclusion scientifique
 
 - La **virtualisation** opère au **niveau de l’infrastructure** : découple le matériel du logiciel.
 - La **conteneurisation** opère au **niveau du processus** : isole les applications et leurs dépendances.
 - L’**orchestration** opère au **niveau du système applicatif** : décrit et maintient un état désiré.
 
-> 🧩 Les trois couches sont **interdépendantes** et forment la base du cloud‑native :  
+> Les trois couches sont **interdépendantes** et forment la base du cloud‑native :  
 > Virtualisation → Conteneurisation → Orchestration.
 
 ---
 
-## 🏗️ Hiérarchie de clusters : du laptop à la production
+## Hiérarchie de clusters : du laptop à la production
 
 > **But** — Donner aux étudiants une grille de lecture : _ce qu’ils manipulent en TD avec MicroK8s_ vs _ce qu’une équipe opère en production_.
 
