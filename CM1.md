@@ -785,7 +785,7 @@ La virtualisation permet à Kubernetes d’être élastique et résilient :
 
 ## Hiérarchie de clusters : du laptop à la production
 
-> **But** — Donner aux étudiants une grille de lecture : _ce qu’ils manipulent en TD avec MicroK8s_ vs _ce qu’une équipe opère en production_.
+> **But** — Donner aux étudiants une grille de lecture : _ce qu’ils manipulent en TD avec Minikube_ vs _ce qu’une équipe opère en production_.
 
 ### 1) Paliers d’évolution
 
@@ -794,20 +794,26 @@ La virtualisation permet à Kubernetes d’être élastique et résilient :
 - **P2 — HA intra‑région** : 3+ nœuds workers, Control Plane redondé, CSI managé, HPA+Cluster Autoscaler, Registry privé.
 - **P3 — Multi‑clusters / multi‑régions** : fédération logique, DR/BCP, politiques réseau et sécurité inter‑clusters, GitOps global.
 
-### 2) Ce que MicroK8s masque vs ce qu’on gère en prod
+### 2) Minikube en TD et Kubernetes en production
 
-| Domaine           | En TD (MicroK8s)              | En production                                            |
-| ----------------- | ----------------------------- | -------------------------------------------------------- |
-| **Control Plane** | Mononœud, composants packagés | Plans de contrôle HA / gérés (managed K8s)               |
-| **Workers**       | 1 VM / machine                | Pools de nœuds, types de VM, autoscaling                 |
-| **Réseau (CNI)**  | CNI par défaut                | CNI choisi (Calico, Cilium…), NetworkPolicy              |
-| **Stockage**      | stockage local / hostpath     | CSI managé (RWO/RWX), classes, snapshots                 |
-| **Ingress**       | Ingress simple                | Ingress controller HA (Traefik/Nginx), LB, WAF           |
-| **Certificats**   | auto‑signé / non utilisé      | cert‑manager, ACME, PKI interne                          |
-| **Sécurité**      | par défaut                    | RBAC fin, PSA/PodSecurity, Secrets KMS, image policies   |
-| **Images**        | tirées du hub public          | registres privés, ImagePullSecrets, scannage, signatures |
-| **Observabilité** | minimale                      | Prometheus/Grafana, logs centralisés, traces, alerting   |
-| **Déploiements**  | kubectl apply                 | GitOps (Flux/Argo), releases Helm, approvals             |
+Minikube exécute un véritable cluster Kubernetes destiné à l’apprentissage, au développement et aux tests locaux. La comparaison porte donc sur la configuration et les conditions d’exploitation. Minikube peut créer plusieurs nœuds sur un même poste ; cela ne fournit pas une tolérance à la panne de ce poste.
+
+| Domaine | Avec Minikube en TD | Kubernetes en production |
+| --- | --- | --- |
+| **Control Plane** | Créé et configuré par Minikube ; généralement un seul nœud dans les premiers exercices. | Autogéré ou managé ; disponibilité, sauvegarde de l’état et restauration à organiser selon les exigences. |
+| **Workers** | Un ou plusieurs nœuds locaux, exécutés dans des conteneurs ou des VM selon le driver utilisé. | Nœuds physiques ou virtuels ; capacité, répartition et remplacement à prévoir. Pools et autoscaling selon les besoins. |
+| **Réseau (CNI)** | Configuration dépendant du driver et du CNI ; prise en charge des NetworkPolicies à vérifier pour les exercices. | Connectivité et isolation maîtrisées, avec un CNI compatible avec les politiques retenues. |
+| **Stockage** | Provisionnement local `hostPath` courant ; les données restent liées au nœud et au stockage du poste. | Backend et pilote adaptés aux données ; modes d’accès, disponibilité, sauvegardes et restauration à définir. |
+| **Ingress** | Contrôleur installé pour les exercices ; accès selon le driver, par réseau local, redirection de port ou tunnel. | Contrôleur et exposition réseau dimensionnés ; équilibrage de charge, redondance et éventuel WAF selon l’architecture. |
+| **Certificats** | API protégée par TLS ; HTTPS applicatif à configurer séparément selon l’exercice. | Confiance, noms DNS, expiration et renouvellement à gérer ; certificats publics ou PKI interne, automatisation possible. |
+| **Sécurité** | Accès administrateur souvent utilisé pour apprendre ; isolation et droits à configurer explicitement. | Moindre privilège, contrôle des Pods, protection des Secrets et traçabilité des accès. |
+| **Images** | Images chargées localement avec `minikube image load` ou téléchargées depuis un registre. | Images versionnées, origine contrôlée, analyse des vulnérabilités et gestion des accès aux registres. |
+| **Observabilité** | `kubectl`, logs et outils de supervision introduits progressivement dans les TD. | Collecte durable des métriques et logs, alertes et procédures d’intervention ; traces selon les besoins. |
+| **Déploiements** | Manifests avec `kubectl`, puis Helm et automatisation selon la progression pédagogique. | Changements reproductibles, versionnés et traçables ; CI/CD, Helm ou GitOps selon l’organisation, avec retour arrière prévu. |
+
+**À retenir :** les objets et les mécanismes Kubernetes étudiés avec Minikube restent applicables en production. Ce qui change est l’infrastructure, la configuration et la responsabilité d’exploitation ; les extensions installées et les capacités disponibles doivent être vérifiées dans chaque environnement.
+
+**Références :** [Objectif de Minikube](https://minikube.sigs.k8s.io/docs/faq/), [clusters multinœuds](https://minikube.sigs.k8s.io/docs/tutorials/multi_node/), [stockage local](https://minikube.sigs.k8s.io/docs/handbook/persistent_volumes/), [accès aux applications](https://minikube.sigs.k8s.io/docs/handbook/accessing/) et [Kubernetes en production](https://kubernetes.io/docs/setup/production-environment/).
 
 ### 3) Topologie visuelle
 
