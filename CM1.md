@@ -96,7 +96,7 @@ Un conteneur héberge souvent un microservice :
 
 - Inclut code + dépendances + runtime.
 - Assure cohérence entre environnements.
-- Garantit immutabilité et interopérabilité.
+- Favorise la reproductibilité et l’interopérabilité.
 
 ---
 
@@ -118,7 +118,7 @@ Ces propriétés — _immutabilité_ et _interopérabilité_ — sont la base du
 ## Limites du modèle monolithique
 
 - Difficulté d’évolution et de correction.
-- Scalabilité verticale uniquement.
+- Mise à l’échelle de l’application entière.
 - Déploiement lent et risqué.
 - Couplage fort entre équipes et technologies.
 
@@ -147,7 +147,7 @@ java -jar application-complete.jar
 | ----------------- | ------------- | -------------------- |
 | Couplage          | Fort          | Faible               |
 | Déploiement       | Unique        | Indépendant          |
-| Scalabilité       | Verticale     | Horizontale          |
+| Scalabilité       | Application entière | Par microservice |
 | Résilience        | Panne globale | Isolement des pannes |
 | Complexité réseau | Faible        | Élevée               |
 
@@ -276,12 +276,12 @@ Naissance de l’Infrastructure as Code (IaC)
 
 ## De la virtualisation à la conteneurisation
 
-> La conteneurisation ne remplace pas la virtualisation, elle s’appuie dessus.
+> La conteneurisation et la virtualisation peuvent être utilisées ensemble.
 
 - Les VMs assurent l’isolation matérielle.
 - Les conteneurs assurent l’isolation logicielle.
 
-Kubernetes combine la robustesse des VMs et la légèreté des conteneurs.
+Kubernetes peut exécuter les conteneurs sur des machines physiques ou virtuelles.
 
 ---
 
@@ -299,7 +299,7 @@ Contrairement à une VM, il partage le noyau du système hôte, ce qui le rend l
 **Objectifs principaux :**
 
 - **Portabilité** → un même conteneur fonctionne sur tout hôte compatible.
-- **Immutabilité** → le conteneur ne change pas : on le reconstruit plutôt que le modifier.
+- **Immutabilité** → on privilégie le remplacement du conteneur à partir d’une image versionnée.
 - **Rapidité** → démarrage en secondes.
 - **Densité** → plusieurs conteneurs peuvent cohabiter sur la même machine.
 
@@ -478,7 +478,7 @@ Apparition des orchestrateurs : Docker Swarm, Mesos, Kubernetes
 
 ## Déclaratif vs impératif
 
-- **Impératif** : « exécute ces commandes dans cet ordre » → fragile, non idempotent.
+- **Impératif** : « exécute ces commandes dans cet ordre » → décrit les opérations à effectuer.
 - **Déclaratif** : « voici l’état désiré du système » → le contrôleur converge vers cet état.
 
 > **Parallèle IaC** : Terraform/Ansible décrivent l’infra ; Kubernetes décrit l’état applicatif (et réseau/stockage associés) au niveau service.
@@ -589,6 +589,7 @@ flowchart LR
   H --> I["États et événements"]
   I --> D
   E -- "Oui" --> J[Convergence]
+  J --> D
 
 ```
 
@@ -698,13 +699,13 @@ spec:
 
 # 5 – La virtualisation au service de l’orchestration
 
-> **Objectif** — Comprendre comment la virtualisation soutient les mécanismes d’orchestration des conteneurs et pourquoi Kubernetes repose encore sur elle pour garantir isolation, élasticité et abstraction des ressources.
+> **Objectif** — Comprendre comment la virtualisation peut soutenir l’orchestration des conteneurs : isolation, élasticité et abstraction des ressources.
 
 ---
 
-## Virtualisation et orchestration : une relation de dépendance
+## Virtualisation et orchestration : une complémentarité
 
-Kubernetes ne remplace pas la virtualisation — il s’appuie dessus.
+Kubernetes peut s’appuyer sur la virtualisation, sans l’exiger.
 
 - La virtualisation fournit le socle d’isolation matérielle : chaque nœud du cluster (control plane ou worker) tourne souvent sur une machine virtuelle (VM).
 - Elle permet la gestion des ressources physiques : CPU, RAM, disque, réseau.
@@ -717,8 +718,8 @@ Kubernetes ne remplace pas la virtualisation — il s’appuie dessus.
 
 ## Exemple selon les environnements
 
-- **Sur un laptop** : `MicroK8s` ou `Minikube` virtualisent implicitement les composants Kubernetes (API Server, Scheduler, kubelet…) dans des VM ou conteneurs isolés.
-- **Sur un cloud provider** : Kubernetes planifie les Pods sur des VM orchestrées par le fournisseur (AWS EC2, GCP Compute Engine, Azure VM, OpenStack…).
+- **Sur un laptop** : Minikube crée un cluster local dans des VM ou des conteneurs selon le driver utilisé.
+- **Sur un cloud provider** : les nœuds sont souvent des VM fournies par l’infrastructure (AWS EC2, GCP Compute Engine, Azure VM, OpenStack…), comme dans le schéma ci-dessous.
 
 ```mermaid
 flowchart TB
@@ -762,13 +763,13 @@ Orchestration (K8s) = pilotage global et automatisé.
 
 ## L’élasticité grâce à la virtualisation
 
-La virtualisation permet à Kubernetes d’être élastique et résilient :
+La virtualisation facilite l’adaptation de l’infrastructure :
 
-- Ajout ou suppression automatique de nœuds virtuels selon la charge.
-- Migration à chaud possible sur certaines plateformes.
+- Ajout ou suppression de nœuds virtuels avec un outil d’autoscaling configuré.
+- Migration à chaud des VM possible sur certaines plateformes.
 - Répartition des ressources matérielles sans redéployer tout le cluster.
 
-> Kubernetes exploite ces capacités pour auto‑scaler horizontalement ses nœuds ou pods selon la demande.
+> L’autoscaling des Pods et celui des nœuds sont des mécanismes distincts, à configurer selon les besoins.
 
 ---
 
@@ -778,7 +779,7 @@ La virtualisation permet à Kubernetes d’être élastique et résilient :
 - La conteneurisation opère au niveau du processus : isole les applications et leurs dépendances.
 - L’orchestration opère au niveau du système applicatif : décrit et maintient un état désiré.
 
-> Les trois couches sont interdépendantes et forment la base du cloud‑native :\
+> Ces couches peuvent se combiner dans une infrastructure cloud-native :\
 > Virtualisation → Conteneurisation → Orchestration.
 
 ---
@@ -789,10 +790,10 @@ La virtualisation permet à Kubernetes d’être élastique et résilient :
 
 ### 1) Paliers d’évolution
 
-- **P0 — Dev local (laptop)** : MicroK8s/Minikube, 1 nœud, stockage local, Ingress simple.
-- **P1 — Single‑cluster non‑critique** : 3 nœuds (VM), Control Plane géré, StorageClass basique, Ingress HA.
-- **P2 — HA intra‑région** : 3+ nœuds workers, Control Plane redondé, CSI managé, HPA+Cluster Autoscaler, Registry privé.
-- **P3 — Multi‑clusters / multi‑régions** : fédération logique, DR/BCP, politiques réseau et sécurité inter‑clusters, GitOps global.
+- **P0 — Apprentissage local** : un cluster Minikube sur un poste.
+- **P1 — Cluster multinœud** : répartir les applications entre plusieurs nœuds.
+- **P2 — Haute disponibilité** : limiter les points de panne au sein d’un cluster.
+- **P3 — Multicluster** : exploiter et coordonner plusieurs clusters indépendants.
 
 ### 2) Minikube en TD et Kubernetes en production
 
@@ -940,20 +941,20 @@ flowchart TB
 ### 4) Vocabulaire minimal « prod »
 
 - Node pool (tailles/machines dédiées), Cluster Autoscaler (ajoute/retire des nœuds).
-- HPA/VPA (scaling des Pods), PDB (budgets de disruptions), PodAntiAffinity (répartition).
+- HPA (nombre de réplicas), VPA (ressources des Pods), PDB (budgets de disruptions), PodAntiAffinity (répartition).
 - StorageClass/CSI, RWX/RWO, snapshot & backup.
 - Ingress Controller + LoadBalancer; DNS externe; cert‑manager.
 - RBAC, NetworkPolicy, PSA, Secret management (KMS/External Secrets).
 
-### 5) Checklist : passer de MicroK8s → Prod
+### 5) Points à vérifier : de Minikube à la production
 
 1. **Images** : base durcie, scans, registry privé, tags immuables (digest).
-2. **Réseau** : choisir une CNI et définir des NetworkPolicy.
-3. **Stockage** : sélectionner un CSI adapté (performances / modes d’accès).
+2. **Réseau** : vérifier la connectivité et les politiques réseau nécessaires.
+3. **Stockage** : choisir une solution adaptée aux données et aux modes d’accès.
 4. **Sécurité** : RBAC, PSA, secrets chiffrés, pull secrets, politiques d’images.
-5. **Exposition** : Ingress HA + certificat valide, DNS.
+5. **Exposition** : routage, certificats, DNS et disponibilité attendue.
 6. **Observabilité** : métriques, logs, traces + alertes.
-7. **Déploiements** : Helm + GitOps (environnement dev/stage/prod).
-8. **Résilience** : autoscaling nœuds/Pods, PDB, backups, tests de reprise (DR).
+7. **Déploiements** : procédure reproductible et retour arrière ; Helm ou GitOps selon les besoins.
+8. **Résilience** : sauvegardes et tests de reprise ; redondance et autoscaling selon les besoins.
 
-> **Message clé pour les TD** : MicroK8s donne la même API que la prod. Ce qui change, c’est l’échelle et les composants gérés (réseau, stockage, sécurité, HA).
+> **Message clé pour les TD** : Minikube permet d’apprendre Kubernetes. En production, la configuration et l’exploitation doivent répondre aux besoins des applications.
