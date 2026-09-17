@@ -487,6 +487,93 @@ Apparition des orchestrateurs : Docker Swarm, Mesos, Kubernetes
 
 ## Boucle de réconciliation (vue système)
 
+La boucle est présentée en trois étapes pour suivre le passage de la déclaration à l’exécution. Le point d’arrivée d’un schéma est repris au début du suivant. Cette décomposition sert à la lecture : les composants travaillent en continu, de manière asynchrone, en échangeant des informations par l’API.
+
+### 1. Déclarer l’état souhaité
+
+L’utilisateur décrit une ressource, par exemple un Deployment, dans un manifest. `kubectl apply` transmet la configuration à l’API Server. Si la requête est autorisée et la ressource valide, l’API Server enregistre l’objet dans etcd. Les autres composants consultent cet état par l’API, sans accéder directement à etcd.
+
+```mermaid
+flowchart TB
+  A["Manifest YAML : état souhaité"]
+  B["kubectl apply : transmettre la configuration"]
+  C["API Server : contrôler la requête et la ressource"]
+  D["etcd : conserver l’objet"]
+  E["État du cluster accessible par l’API"]
+
+  A --> B --> C
+  C -->|"Enregistrement"| D
+  C -->|"Après enregistrement"| E
+
+  classDef raccord fill:#e8eef5,stroke:#466482,color:#172b4d;
+  class E raccord;
+```
+
+**Point de passage :** l’objet existe dans le cluster. Cela ne signifie pas encore que les conteneurs correspondants sont en cours d’exécution.
+
+---
+
+### 2. Observer et décider
+
+Les contrôleurs observent les objets et leurs changements via l’API Server. Chacun rapproche l’état observé de l’état souhaité pour les ressources dont il a la charge. Lorsqu’un écart nécessite de nouveaux Pods, ils en demandent la création par l’API. Pour un Deployment, cette action passe par un ReplicaSet, qui maintient le nombre de Pods attendu.
+
+```mermaid
+flowchart TB
+  A["État du cluster accessible par l’API"]
+  B["Contrôleurs : observer les ressources"]
+  C{"État observé conforme à l’état souhaité ?"}
+  D["Poursuivre la surveillance"]
+  E["Demander les changements nécessaires via l’API"]
+  F["Pods à affecter à un nœud"]
+
+  A --> B --> C
+  C -->|"Oui"| D
+  D --> B
+  C -->|"Non"| E
+  E -->|"Cas de nouveaux Pods"| F
+
+  classDef raccord fill:#e8eef5,stroke:#466482,color:#172b4d;
+  class A,F raccord;
+```
+
+**Point de passage :** le troisième schéma suit le cas de nouveaux Pods à exécuter. D’autres écarts peuvent demander une mise à jour ou une suppression de ressources. La conformité ne met pas fin à la surveillance.
+
+---
+
+### 3. Exécuter et réobserver
+
+Le Scheduler repère les Pods sans affectation, choisit un nœud et enregistre cette affectation par l’API. Le kubelet du nœud concerné observe les Pods qui lui sont affectés et demande au runtime de lancer leurs conteneurs. Il remonte ensuite leur état à l’API Server, afin que les contrôleurs puissent poursuivre la réconciliation.
+
+```mermaid
+flowchart TB
+  A["Pods à affecter à un nœud"]
+  B["Scheduler : choisir un nœud"]
+  C["API Server : enregistrer l’affectation"]
+  D["Kubelet : observer les Pods affectés au nœud"]
+  E["Runtime : lancer les conteneurs"]
+  F["Kubelet : remonter l’état via l’API Server"]
+  G["État du cluster accessible par l’API"]
+  H["Retour à l’observation — schéma 2"]
+
+  A --> B --> C --> D --> E
+  E -->|"État des conteneurs"| F
+  F --> G
+  G -.-> H
+
+  classDef raccord fill:#e8eef5,stroke:#466482,color:#172b4d;
+  class A,G raccord;
+```
+
+**Point de passage :** les informations remontées alimentent une nouvelle observation. Les flèches présentent la succession logique des actions ; elles ne représentent pas une chaîne d’appels directs entre tous les composants.
+
+**Références :** [Contrôleurs Kubernetes](https://kubernetes.io/docs/concepts/architecture/controller/) et [composants du cluster](https://kubernetes.io/docs/concepts/overview/components/).
+
+---
+
+### Vue d’ensemble
+
+Le schéma suivant conserve la vue synthétique du mécanisme. Les trois étapes précédentes explicitent les échanges par l’API et le placement des Pods, simplifiés dans cette représentation. La convergence est un état atteint, et non l’arrêt de la boucle.
+
 ```mermaid
 flowchart LR
   subgraph User[Développeur]
