@@ -37,13 +37,13 @@ C'est le cerveau du cluster. Il prend les décisions d'orchestration et maintien
 
 ### ⚙️ Les **Worker Nodes** (Nœuds de travail)
 
-Chaque nœud exécute les conteneurs réels. Il contient :
+Les workers exécutent les Pods applicatifs. Les composants de nœud ci-dessous ne leur sont pas exclusifs : un nœud du plan de contrôle en utilise également pour exécuter ses Pods système.
 
 | Composant             | Rôle                                                                                   |
 | --------------------- | -------------------------------------------------------------------------------------- |
 | **kubelet**           | Agent local. Reçoit les instructions du Control Plane et gère les Pods sur la machine. |
 | **container runtime** | Exécute les conteneurs (Docker, containerd, CRI-O...).                                 |
-| **kube-proxy**        | Gère le routage et les règles de communication réseau entre Pods et Services.          |
+| **kube-proxy**        | Configure les règles réseau qui dirigent le trafic des Services vers leurs Pods cibles.          |
 
 ---
 
@@ -91,86 +91,138 @@ flowchart LR
 
 ---
 
-## 5. Schéma d'ensemble
+## 5. Trois vues complémentaires du cluster
+
+### 5.1. Plan de contrôle : gérer et exécuter les Pods
+
+L’API Server est le point d’échange : les contrôleurs y observent les ressources et demandent les changements ; le scheduler y enregistre l’affectation des Pods. Chaque kubelet observe les Pods affectés à son nœud, pilote leur exécution via le runtime et remonte leur état.
+
+Dans cet exemple, comme avec kubeadm, les composants principaux du plan de contrôle et etcd sont des Pods statiques, exécutés par le runtime sous la supervision du kubelet local. Le kubelet et le runtime sont généralement des services de l’hôte. Cette organisation peut varier selon l’installation.
 
 ```mermaid
 flowchart TB
-  %% Définition des styles
-  classDef control fill:#f5f5f5,stroke:#888,stroke-width:1px,color:#000;
-  classDef worker fill:#e9f7ff,stroke:#007acc,stroke-width:1px,color:#000;
-  classDef datastore fill:#fffbe6,stroke:#888,stroke-width:1px,color:#000;
-
-  %% Control Plane
-  subgraph CP["🧠 Control Plane (cp nodes)"]
-    APIServer["kube-apiserver"]:::control
-    ETCD["etcd (base clé-valeur)"]:::datastore
-    Controller["kube-controller-manager"]:::control
-    Scheduler["kube-scheduler"]:::control
-    CloudCtrl["cloud-controller-manager (optionnel)"]:::control
-    ProxyCP["kube-proxy"]:::control
+  subgraph CP["Nœud du plan de contrôle"]
+    KCP["kubelet local"]
+    RCP["Runtime — containerd"]
+    subgraph STATIC["Pods statiques"]
+      API["API Server"]
+      ETCD["etcd — état du cluster"]
+      CTRL["Contrôleurs"]
+      SCHED["Scheduler"]
+    end
+    KCP -->|"Pilote l’exécution"| RCP
+    RCP -->|"Exécute les conteneurs"| STATIC
+    API <-->|"Lit et enregistre l’état"| ETCD
+    CTRL <-->|"Observe / demande des changements via l’API"| API
+    SCHED <-->|"Observe / enregistre l’affectation via l’API"| API
+    KCP <-->|"État du nœud et des Pods"| API
   end
 
-  %% Relations internes du Control Plane
-  APIServer --> ETCD
-  APIServer --> Controller
-  APIServer --> Scheduler
-  APIServer -.-> ProxyCP
-  CloudCtrl -.-> APIServer
-
-  %% Worker Nodes
-  subgraph W1["Worker Node 1"]
-    Kubelet1["kubelet"]:::worker
-    Proxy1["kube-proxy"]:::worker
-    Containerd1["containerd"]:::worker
-    Pod1a["Pod A"]
-    Pod1b["Pod B"]
-    Kubelet1 --> Containerd1 --> Pod1a
-    Containerd1 --> Pod1b
+  subgraph WORKER["Nœud de travail — un exemple"]
+    K["kubelet"]
+    R["Runtime — containerd"]
+    P["Pods applicatifs"]
+    K -->|"Pilote l’exécution"| R
+    R -->|"Exécute les conteneurs"| P
   end
 
-  subgraph W2["Worker Node 2"]
-    Kubelet2["kubelet"]:::worker
-    Proxy2["kube-proxy"]:::worker
-    Containerd2["containerd"]:::worker
-    Pod2a["Pod C"]
-    Pod2b["Pod D"]
-    Kubelet2 --> Containerd2 --> Pod2a
-    Containerd2 --> Pod2b
-  end
+  K <-->|"Observe les Pods affectés / remonte leur état"| API
 
-  subgraph W3["Worker Node 3"]
-    Kubelet3["kubelet"]:::worker
-    Proxy3["kube-proxy"]:::worker
-    Containerd3["containerd"]:::worker
-    Pod3a["Pod E"]
-    Pod3b["Pod F"]
-    Kubelet3 --> Containerd3 --> Pod3a
-    Containerd3 --> Pod3b
-  end
-
-  %% Communications via API Server
-  APIServer --> Kubelet1
-  APIServer --> Kubelet2
-  APIServer --> Kubelet3
-  APIServer --> Proxy1
-  APIServer --> Proxy2
-  APIServer --> Proxy3
-
-  %% Retour d’état vers l’API
-  Kubelet1 --> APIServer
-  Kubelet2 --> APIServer
-  Kubelet3 --> APIServer
-
-  %% Communication réseau inter-nœuds
-  Proxy1 -. Trafic réseau .-> Proxy2
-  Proxy1 -. Trafic réseau .-> Proxy3
-  Proxy2 -. Trafic réseau .-> Proxy3
-
-  %% Légende
-  class CP,ETCD,Controller,Scheduler,CloudCtrl,ProxyCP control;
-  class W1,W2,W3,Kubelet1,Kubelet2,Kubelet3,Proxy1,Proxy2,Proxy3,Containerd1,Containerd2,Containerd3 worker;
-  class ETCD datastore;
+  classDef composant fill:#e8eef5,stroke:#466482,color:#172b4d;
+  class KCP,RCP,API,CTRL,SCHED,K,R,P composant;
+  classDef stockage fill:#fff8e6,stroke:#a68b48,color:#45391d;
+  class ETCD stockage;
 ```
+
+**Lecture :** les doubles flèches représentent les échanges avec l’API, pas le trafic applicatif. Le kubelet gère les Pods statiques à partir de leur définition locale, même si l’API est indisponible. Le cloud-controller-manager optionnel, présenté plus haut, n’est pas détaillé ici. Le réseau applicatif est réservé aux deux vues suivantes.
+
+---
+
+### 5.2. Réseau des Pods : traverser le réseau des nœuds
+
+Le **CNI (Container Network Interface)** définit l’interface utilisée par le runtime pour configurer le réseau d’un Pod à l’aide de plugins : interface réseau, adresse IP et routes. La solution réseau choisie assure aussi la connectivité entre les nœuds. Ici, on prend l’exemple de **Flannel avec un réseau superposé (overlay) VXLAN** ; d’autres solutions ou configurations utilisent du routage sans tunnel.
+
+Le Pod A veut joindre le Pod B. Leurs adresses appartiennent au réseau des Pods, distinct du réseau qui relie les nœuds. Avec VXLAN, le nœud A encapsule la trame du Pod dans un paquet UDP/IP adressé au nœud B. Celui-ci retire cette enveloppe et livre le paquet au Pod destinataire.
+
+```mermaid
+flowchart TB
+  subgraph NA["Nœud A — IP 192.168.1.10"]
+    PA["Pod A — eth0 : 10.244.1.2"]
+    LA["Liaison virtuelle veth / bridge local"]
+    VA["Interface VXLAN — encapsulation"]
+    EA["Interface du nœud — 192.168.1.10"]
+    PA -->|"Paquet : 10.244.1.2 vers 10.244.2.3"| LA
+    LA --> VA --> EA
+  end
+
+  UNDER["Réseau entre nœuds — underlay<br/>Interfaces, commutateurs et routeurs<br/>Enveloppe IP : 192.168.1.10 vers 192.168.1.20<br/>UDP / VXLAN : trame des Pods encapsulée"]
+
+  subgraph NB["Nœud B — IP 192.168.1.20"]
+    EB["Interface du nœud — 192.168.1.20"]
+    VB["Interface VXLAN — décapsulation"]
+    LB["Bridge local / liaison virtuelle veth"]
+    PB["Pod B — eth0 : 10.244.2.3"]
+    EB --> VB --> LB
+    LB -->|"Paquet : 10.244.1.2 vers 10.244.2.3"| PB
+  end
+
+  EA ==>|"Transport entre les nœuds"| UNDER
+  UNDER ==> EB
+
+  classDef pod fill:#e8eef5,stroke:#466482,color:#172b4d;
+  class PA,PB pod;
+  classDef tunnel fill:#fff8e6,stroke:#a68b48,color:#45391d;
+  class VA,VB,UNDER tunnel;
+```
+
+**À retenir :** dans cet exemple, les IP source et destination des Pods sont conservées dans le paquet intérieur. L’enveloppe extérieure utilise les IP des nœuds ; elle est ajoutée au départ et retirée à l’arrivée. Le même identifiant de réseau VXLAN (VNI) est utilisé aux deux extrémités. Les équipements intermédiaires transportent l’enveloppe sans avoir à connaître les routes des Pods.
+
+Les plugins CNI et les agents de la solution réseau configurent les interfaces et les routes ; le noyau assure ici l’encapsulation et le transport. Le schéma suit le chemin **Pod → nœud → réseau physique → nœud → Pod**. Avec des nœuds virtuels, le réseau sous-jacent comporte également les interfaces et commutateurs virtuels de l’infrastructure. Les adresses sont illustratives ; les Services et le DNS sont volontairement absents de cette vue.
+
+**Références :** [Plugins réseau Kubernetes](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/) et [backend VXLAN de Flannel](https://github.com/flannel-io/flannel/blob/master/Documentation/backends.md#vxlan).
+
+---
+
+### 5.3. Plan de données : découvrir puis joindre la base
+
+On utilise maintenant le réseau des Pods expliqué ci-dessus, sans redessiner ses interfaces ni ses tunnels. L’application est sur le nœud A ; la base et un Pod CoreDNS sont ici sur le nœud B. Ce placement est un exemple : CoreDNS peut être répliqué sur plusieurs nœuds. Ses Pods sont généralement déployés dans le namespace `kube-system` et exposés par le Service **`kube-dns`**.
+
+Deux échanges se succèdent : **résoudre le nom du Service de la base**, puis **ouvrir la connexion vers la base**. CoreDNS renvoie une adresse ; il ne relaie pas les requêtes adressées à la base.
+
+```mermaid
+flowchart TB
+  subgraph A["Nœud A"]
+    APP["Pod de l’application"]
+    PROXY["kube-proxy"]
+    RDNS["Règles locales du Service kube-dns<br/>IP du Service DNS vers IP du Pod CoreDNS"]
+    RDB["Règles locales du Service de la base<br/>IP du Service base vers IP du Pod base"]
+    PROXY -.->|"Configure et actualise"| RDNS
+    PROXY -.->|"Configure et actualise"| RDB
+    APP -->|"Étape 1 : question DNS — base.backend.svc.cluster.local"| RDNS
+    APP ==>|"Étape 3 : connexion à l’IP du Service base"| RDB
+  end
+
+  subgraph B["Nœud B"]
+    DNS["Pod CoreDNS<br/>Namespace kube-system"]
+    DB["Pod de la base de données<br/>Namespace backend"]
+  end
+
+  RDNS -->|"Réseau des Pods : requête DNS"| DNS
+  DNS -->|"Étape 2 : réponse DNS — IP du Service base"| APP
+  RDB ==>|"Réseau des Pods : connexion à la base"| DB
+  DB ==>|"Étape 4 : réponse applicative"| APP
+
+  classDef composant fill:#e8eef5,stroke:#466482,color:#172b4d;
+  class APP,PROXY,RDNS,RDB,DNS,DB composant;
+```
+
+**Lecture :** les traits fins suivent l’échange DNS ; les traits épais suivent l’échange avec la base ; les pointillés indiquent la configuration des règles. Les réponses sont représentées logiquement : elles empruntent aussi le réseau des Pods, avec le traitement de retour associé aux connexions. Les namespaces indiquent l’appartenance logique des Pods ; ils peuvent s’étendre sur plusieurs nœuds.
+
+`kube-proxy` observe les Services et leurs destinations (EndpointSlices) via l’API et actualise les règles sur chaque nœud. Seules les règles du nœud source sont détaillées ici. Les Services sont des objets logiques avec une IP virtuelle dans cet exemple, pas des processus intermédiaires ; les paquets sont traités par les règles du noyau, sans traverser le processus `kube-proxy`. L’API et le détail du CNI sont omis pour suivre uniquement ces échanges.
+
+Le plan de contrôle maintient les ressources et leur configuration ; le réseau des Pods assure le transport ; les Services et le DNS fournissent des points d’accès stables et nommés.
+
+**Référence :** [Service DNS et CoreDNS dans Kubernetes](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/).
 
 ---
 
@@ -296,7 +348,7 @@ Le système entre alors dans sa boucle de **réconciliation continue**.
 
 ## 4. `kubectl create` vs `kubectl apply`
 
-Il est fréquent de confondre les commandes `create` et `apply`. Elles semblent similaires, mais elles participent toutes deux du modèle déclaratif.
+Les commandes `create` et `apply` permettent de gérer les objets Kubernetes selon deux approches : impérative pour `create`, déclarative pour `apply`.
 
 ### ✳️ `kubectl create`
 
@@ -306,15 +358,15 @@ Crée un nouvel objet à partir d’un fichier ou d’un modèle direct :
 kubectl create deployment web --image=nginx
 ```
 
-Cette commande **génère implicitement un manifest YAML** qui est immédiatement transmis à l’API Server. L’objet créé devient alors une entrée dans `etcd`, et le Controller Manager se charge de sa réconciliation comme pour tout autre objet.
+Cette commande construit un objet Deployment et demande sa création à l’API Server. Celui-ci l’enregistre dans `etcd` ; les contrôleurs concernés assurent ensuite sa réconciliation.
 
-On peut ensuite **retrouver la description déclarative** de cet objet :
+On peut ensuite **consulter la description de cet objet au format YAML** :
 
 ```bash
 kubectl get deployment web -o yaml
 ```
 
-> Même si la commande `create` semble impérative, Kubernetes la traduit en une **déclaration d’état**. Ce qui est sauvegardé et réconcilié, c’est un objet YAML, pas un ordre exécutable.
+> La commande `create` est impérative : elle demande une création et échoue si l’objet existe déjà. L’objet créé décrit néanmoins un état souhaité, pris en charge par les contrôleurs concernés.
 
 ### 🧩 `kubectl apply`
 
@@ -329,12 +381,12 @@ ce qui permet de **comparer les différences** et d’**effectuer des mises à j
 
 ### 💡 En résumé
 
-| Commande | Nature                  | Utilisation typique                  | Gestion de l’état                 |
-| -------- | ----------------------- | ------------------------------------ | --------------------------------- |
-| `create` | Déclaratif (instantané) | Créer une ressource unique ou rapide | Enregistrement immédiat dans etcd |
-| `apply`  | Déclaratif (continu)    | Créer ou mettre à jour via YAML      | Suivi et réconciliation continue  |
+| Commande | Approche | Comportement |
+| --- | --- | --- |
+| `kubectl create` | Impérative | Crée un objet ; échoue si cet objet existe déjà. |
+| `kubectl apply` | Déclarative | Crée ou met à jour un objet à partir de la configuration fournie. |
 
-Dans les deux cas, Kubernetes fonctionne toujours selon le même principe : le **Controller Manager** compare en permanence l’état déclaré à l’état observé et agit jusqu’à leur convergence.
+Dans les deux cas, les contrôleurs concernés poursuivent la réconciliation après la création de l’objet. La différence porte sur la manière de créer ou de mettre à jour sa configuration.
 
 ---
 
@@ -452,7 +504,7 @@ Ces commandes permettent de relier la **théorie (fichier YAML)** à la **réali
 - L’utilisateur **ne manipule pas les conteneurs**, mais les objets qui les représentent.
 - Le **Control Plane** maintient la cohérence entre l’état désiré et l’état réel.
 - Le YAML est **la grammaire du dialogue** entre l’humain et l’orchestrateur.
-- Même les commandes `create` sont **déclaratives**, car elles produisent un objet persistant que le Controller Manager réconcilie.
+- `create` est **impératif** et `apply` **déclaratif** ; les objets créés restent, dans les deux cas, pris en charge par les contrôleurs concernés.
 
 ---
 
