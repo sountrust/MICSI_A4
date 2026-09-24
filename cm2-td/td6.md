@@ -62,7 +62,7 @@ minikube addons enable ingress
 Vérifier le déploiement :
 
 ```bash
-kubectl get namespace
+kubectl get namespaces
 ```
 
 Les pods du contrôleur se trouvent dans le namespace `ingress-nginx` :
