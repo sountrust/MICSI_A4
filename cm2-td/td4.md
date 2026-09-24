@@ -1,103 +1,81 @@
-# TD 4 – Gestion par kubectl d’une application
+# TD 4 – Gestion d’une application Kubernetes avec `kubectl`
 
----
+## Objectifs
 
-## Partie 1 – Manipulation d’un déploiement et accès direct à une application via kubectl
+À l’issue du TD, vous pourrez créer et inspecter un Deployment, suivre les Pods et les ReplicaSets, consulter les journaux, accéder temporairement à une application, créer un Service et modifier le nombre de réplicas.
 
-### 1. Suppression d’un déploiement
+> **Préalable.** Vérifiez le contexte avec `kubectl config current-context`. Les commandes ci-dessous supposent que vous travaillez dans le namespace `default` et que le contexte sélectionné est celui du cluster de TD. Les noms de Pods, adresses IP, âges et événements présentés sont des exemples : vos résultats seront différents. Ne supprimez aucune ressource d’un autre contexte.
 
-Lors du précédent chapitre, l’application **Mailpit** a été déployée à l’aide du dashboard Kubernetes. Même si cela n’a pas été fait manuellement, il est possible de poursuivre ce TD avec les instructions suivantes.
+## Partie 1 – Déploiement et accès direct à Mailpit
 
-Lister les déploiements existants :
+### 1. Supprimer le Deployment précédent
+
+Mailpit a été créé dans le Dashboard lors de la séance précédente. Listez d’abord les Deployments :
 
 ```bash
 kubectl get deployment
 ```
 
-Exemple :
-
-```
+```text
 NAME      READY   UP-TO-DATE   AVAILABLE   AGE
 mailpit   1/1     1            1           8d
 ```
 
-Supprimer le déploiement :
+Supprimez **uniquement** ce Deployment :
 
 ```bash
 kubectl delete deployment mailpit
 ```
 
-Sortie attendue :
-
-```
-deployments.apps "mailpit" deleted
+```text
+deployment.apps "mailpit" deleted
 ```
 
-Vérifier ensuite la liste des pods :
+Observez les Pods aussitôt après :
 
 ```bash
 kubectl get pods
 ```
 
-Résultat temporaire :
-
-```
+```text
 NAME                       READY   STATUS        RESTARTS   AGE
 mailpit-69bd8f74cb-kl9p5   1/1     Terminating   2          8d
 ```
 
-Après quelques secondes :
+Après quelques instants, le Pod disparaît. Si aucun autre Pod n’existe dans `default`, la réponse peut être `No resources found in default namespace.`. La suppression du Deployment entraîne celle des ReplicaSets et Pods qu’il contrôle ; elle ne supprime pas automatiquement un éventuel Service ou volume persistant créé séparément. Si un Service `mailpit` existe déjà, signalez-le avant la partie 2.
 
-```
-No resources found.
-```
+### 2. Créer un Deployment depuis la ligne de commande
 
----
-
-### 2. Création d’un déploiement
-
-Créer un déploiement :
+La commande `kubectl create deployment` reçoit le nom du Deployment et l’image à exécuter :
 
 ```bash
 kubectl create deployment mailpit --image=axllent/mailpit
 ```
 
-Sortie :
-
-```
+```text
 deployment.apps/mailpit created
 ```
 
----
+Le Deployment demande ici un réplica. Son Pod est créé progressivement ; patientez si l’image doit être téléchargée.
 
-### 3. État du déploiement
-
-Afficher les déploiements :
+### 3. Examiner l’état du Deployment
 
 ```bash
 kubectl get deployment
+kubectl get deployment mailpit -o wide
+kubectl describe deployment mailpit
 ```
 
-Exemple :
+Exemples abrégés :
 
-```
+```text
 NAME      READY   UP-TO-DATE   AVAILABLE   AGE
 mailpit   1/1     1            1           3m
 ```
 
-Pour plus de détails :
-
-```bash
-kubectl describe deployment mailpit
-```
-
-Exemple abrégé :
-
-```
+```text
 Name:                   mailpit
 Namespace:              default
-Labels:                 app=mailpit
-Annotations:            deployment.kubernetes.io/revision: 1
 Selector:               app=mailpit
 Replicas:               1 desired | 1 updated | 1 total | 1 available | 0 unavailable
 StrategyType:           RollingUpdate
@@ -105,255 +83,208 @@ Pod Template:
   Labels:  app=mailpit
   Containers:
     mailpit:
-      Image:        axllent/mailpit
-      Port:         <none>
+      Image: axllent/mailpit
+      Port:  <none>
 Conditions:
-  Type           Status  Reason
-  ----           ------  ------
-  Available      True    MinimumReplicasAvailable
-  Progressing    True    NewReplicaSetAvailable
-NewReplicaSet:   mailpit-5bcf98ffcd (1/1 replicas created)
+  Type         Status  Reason
+  Available    True    MinimumReplicasAvailable
+  Progressing  True    NewReplicaSetAvailable
 Events:
-  Type    Reason             Age   From                   Message
-  ----    ------             ----  ----                   -------
-  Normal  ScalingReplicaSet  2m    deployment-controller  Scaled up replica set mailpit-5bcf98ffcd to 1
+  Normal  ScalingReplicaSet  ...  Scaled up replica set mailpit-... to 1
 ```
 
-Les informations clés :
+Repérez la stratégie `RollingUpdate`, le sélecteur, l’image, le nombre de réplicas et les événements. **`Port: <none>` signifie qu’aucun `containerPort` n’est déclaré ; cela n’empêche pas l’application d’écouter sur un port ni `kubectl port-forward` de fonctionner.**
 
-- stratégie de mise à jour (_RollingUpdate_) ;
-- labels de sélection ;
-- image déployée ;
-- état du déploiement et événements récents.
+### 4. Comprendre le ReplicaSet
 
----
-
-### 4. Mécanisme des ReplicaSet
-
-#### a. Consultation des ReplicaSet
-
-Chaque déploiement gère un ou plusieurs objets **ReplicaSet**, qui maintiennent les pods associés.
+Un Deployment gère un ReplicaSet qui maintient le nombre demandé de Pods. Lors d’une mise à jour du modèle des Pods, un nouveau ReplicaSet peut être créé ; les anciens peuvent être conservés pour permettre un retour à la version précédente.
 
 ```bash
 kubectl get replicaset
 ```
 
-Exemple :
-
-```
+```text
 NAME                 DESIRED   CURRENT   READY   AGE
-mailpit-5bcf98ffcd   1         1         1       2m2s
+mailpit-5bcf98ffcd   1         1         1       2m
 ```
 
-#### b. Description d’un ReplicaSet
+Reprenez **le nom affiché dans votre terminal** :
 
 ```bash
 kubectl describe rs mailpit-5bcf98ffcd
 ```
 
-Extrait :
-
-```
+```text
 Name:           mailpit-5bcf98ffcd
-Namespace:      default
 Selector:       app=mailpit,pod-template-hash=5bcf98ffcd
-Labels:         app=mailpit
 Controlled By:  Deployment/mailpit
 Replicas:       1 current / 1 desired
 Pods Status:    1 Running / 0 Waiting / 0 Failed
-Containers:
-  mailpit:
-    Image:  axllent/mailpit
 Events:
-  Type    Reason            Age   From                   Message
-  ----    ------            ----  ----                   -------
-  Normal  SuccessfulCreate  3m11s replicaset-controller  Created pod: mailpit-5bcf98ffcd-nl4l9
+  Normal  SuccessfulCreate  ...  Created pod: mailpit-5bcf98ffcd-nl4l9
 ```
 
-Les **Events** répertorient les actions effectuées sur les pods et permettent le diagnostic des anomalies.
+Le suffixe du ReplicaSet correspond au hash du modèle de Pod. Les événements permettent de suivre les créations et certains échecs ; les redémarrages et leurs causes se vérifient aussi dans la description du Pod et ses événements.
 
----
-
-### 5. État du pod
-
-#### a. Liste des pods
+### 5. Inspecter le Pod
 
 ```bash
 kubectl get pods
+kubectl get pods --watch
 ```
 
-Exemple :
+Arrêtez le suivi avec `Ctrl+C`. Exemple de résultat :
 
-```
+```text
 NAME                       READY   STATUS    RESTARTS   AGE
 mailpit-5bcf98ffcd-nl4l9   1/1     Running   0          17s
 ```
 
-Suivi en temps réel :
-
-```bash
-kubectl get pods --watch
-```
-
-Arrêt avec `Ctrl+C`.
-
-#### b. Description d’un pod
+Décrivez le Pod en remplaçant le nom d’exemple :
 
 ```bash
 kubectl describe pod mailpit-5bcf98ffcd-nl4l9
 ```
 
-Exemple abrégé :
-
-```
-Name:         mailpit-5bcf98ffcd-nl4l9
-Namespace:    default
-Node:         minikube/192.168.122.67
-Labels:       app=mailpit
-Status:       Running
-IP:           172.17.0.5
+```text
+Name:          mailpit-5bcf98ffcd-nl4l9
+Namespace:     default
+Node:          minikube-137/192.168.58.2
+Labels:        app=mailpit
+Status:        Running
+IP:            10.244.0.7
 Controlled By: ReplicaSet/mailpit-5bcf98ffcd
-Containers:
-  mailpit:
-    Image: axllent/mailpit
 Events:
-  Normal  Scheduled  5m37s  default-scheduler  Successfully assigned default/mailpit-5bcf98ffcd-nl4l9 to minikube
-  Normal  Pulling    5m36s  kubelet            Pulling image "axllent/mailpit"
-  Normal  Started    5m35s  kubelet            Started container mailpit
+  Normal  Scheduled  ...  Successfully assigned default/mailpit-... to minikube-137
+  Normal  Pulling    ...  Pulling image "axllent/mailpit"
+  Normal  Started    ...  Started container mailpit
 ```
 
----
+Les valeurs de `Node` et `IP` dépendent de votre cluster. Relevez le nœud, l’IP, le contrôleur et les événements du Pod.
 
-### 6. Accès aux logs du conteneur
+### 6. Lire les journaux
 
 ```bash
-kubectl logs mailpit-5bcf98ffcd-nl4l9
+kubectl logs deployment/mailpit
 ```
 
-Sortie typique :
+On peut aussi cibler un Pod précis : `kubectl logs <nom-du-pod>`. Si le Pod contient plusieurs conteneurs, ajoutez `-c <nom-du-conteneur>`. Dans les journaux de Mailpit, recherchez l’écoute SMTP sur **1025** et l’interface HTTP sur **8025** ; leur formulation exacte varie selon l’image.
 
-```
-... level=info msg="[smtpd] starting on [::]:1025 (no encryption)"
-... level=info msg="[http] starting on [::]:8025"
-... level=info msg="[http] accessible via http://localhost:8025/"
-```
-
----
-
-### 7. Accès à l’application Mailpit
+### 7. Ouvrir temporairement l’interface web
 
 ```bash
-kubectl port-forward deployment/mailpit 8025
+kubectl port-forward deployment/mailpit 8025:8025
 ```
 
-Accès : [http://127.0.0.1:8025](http://127.0.0.1:8025)
+```text
+Forwarding from 127.0.0.1:8025 -> 8025
+Forwarding from [::1]:8025 -> 8025
+```
 
-#### Compatibilité selon l’OS
+Ouvrez [http://127.0.0.1:8025](http://127.0.0.1:8025). Laissez le terminal ouvert puis arrêtez la redirection avec `Ctrl+C`. Le ciblage du Deployment évite de recopier le nom d’un Pod ; **une session en cours s’interrompt néanmoins si le Pod sélectionné est remplacé** et doit être relancée. Un port occupé sur la machine locale provoque une erreur : arrêtez l’autre transfert ou utilisez, par exemple, `8080:8025` et ouvrez `http://127.0.0.1:8080`.
 
-| Système                                      | Commande                                       | Particularités                                                    |
-| -------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------- |
-| **Linux / macOS / Windows (Docker Desktop)** | `kubectl port-forward deployment/mailpit 8025` | Fonctionne de manière identique (port redirigé vers 127.0.0.1).   |
-| **Windows avec WSL2**                        | Exécuter dans WSL2                             | Accès via `http://localhost:8025` depuis le navigateur de l’hôte. |
+| Environnement | Accès depuis le navigateur |
+|---|---|
+| Linux, macOS, Windows avec Docker Desktop | Ouvrir `http://127.0.0.1:8025` sur la machine qui exécute `kubectl`. |
+| Windows avec commande exécutée dans WSL2 | Essayer `http://localhost:8025` depuis Windows ; selon la configuration réseau de WSL2, utiliser le navigateur dans WSL ou adapter le transfert. |
 
-La commande reste active tant qu’elle tourne. Interrompre avec `Ctrl+C`. En cas de redéploiement, relancer la commande.
+> **Lien avec Lens.** `kubectl port-forward` peut cibler le Deployment même sans Service ni port déclaré dans le Pod. Le transfert lancé dans un terminal n’apparaît pas parmi les sessions créées par Lens. Dans Lens, la création depuis un Pod dépend de l’affichage d’un port déclaré ; la fiche d’un Service offre une autre entrée lorsque ce Service existe.
 
----
+## Partie 2 – Service, découverte et nombre de réplicas
 
-## Partie 2 – Exposition de services
+### 1. Pourquoi créer un Service ?
 
-### 1. Pourquoi un service ?
+L’IP et le nom d’un Pod peuvent changer lorsqu’il est remplacé. Un Service fournit une **adresse logique stable** et sélectionne les Pods à partir de leurs labels. Un Service `ClusterIP` possède un nom DNS interne et peut diriger le trafic vers plusieurs Pods prêts. La résolution DNS donne normalement l’IP du Service, et non une entrée DNS réécrite pour chaque nouveau Pod. Ce nom est réservé au cluster : il ne rend pas l’application directement accessible depuis le navigateur de l’hôte.
 
-Un **Service** fournit un point d’accès stable pour une application. Il :
-
-- crée un nom DNS interne ;
-- redirige automatiquement vers les nouveaux pods ;
-- répartit la charge entre plusieurs réplicas.
-
-### 2. Création du service
+### 2. Exposer les deux ports de Mailpit
 
 ```bash
 kubectl expose deployment/mailpit --port 1025,8025
 ```
 
-Sortie :
-
-```
+```text
 service/mailpit exposed
 ```
 
-### 3. Vérification du service
+Dans cette version de `kubectl`, la liste séparée par des virgules crée deux ports TCP dans le Service : SMTP sur **1025** et HTTP sur **8025**. Chacun cible le même numéro de port sur le Pod. Kubernetes leur attribue des noms distincts (`port-1` et `port-2`), obligatoires dans un Service à plusieurs ports. Le Service sélectionne les Pods portant `app=mailpit`. Vérifiez :
 
-Ouvrir un shell dans le pod :
+```bash
+kubectl get service mailpit
+kubectl describe service mailpit
+kubectl get endpointslice -l kubernetes.io/service-name=mailpit
+```
+
+Dans le cluster de TD, `kubectl get service mailpit -o yaml` confirme les deux entrées : `port-1` pour `1025/TCP` et `port-2` pour `8025/TCP`. Pour attribuer des noms explicites comme `smtp` et `http`, définissez le Service dans un manifeste YAML. Voir la [documentation des Services](https://kubernetes.io/docs/concepts/services-networking/service/).
+
+### 3. Vérifier la résolution DNS depuis un Pod
+
+Essayez d’abord d’ouvrir un shell dans le Pod applicatif :
 
 ```bash
 kubectl exec -it deployment/mailpit -- sh
 ```
 
-Puis :
+Si un shell est disponible, exécutez `getent hosts mailpit` **si `getent` est installé**, puis `exit`. Exemple :
+
+```text
+10.107.51.181  mailpit.default.svc.cluster.local mailpit
+```
+
+L’adresse obtenue varie d’un cluster à l’autre. En l’absence de shell ou d’outil DNS dans l’image Mailpit, lancez plutôt un Pod de test temporaire :
 
 ```bash
-getent hosts mailpit
+kubectl run test-mailpit --rm -it --restart=Never --image=busybox:1.36 -- nslookup mailpit
 ```
 
-Résultat :
+Exemple :
 
+```text
+Name:    mailpit.default.svc.cluster.local
+Address: 10.107.51.181
 ```
-10.107.51.181 mailpit.default.svc.cluster.local mailpit
-```
 
-### 4. En cas d’absence de shell
+Selon la configuration du résolveur, la réponse peut comporter plusieurs lignes supplémentaires. Le Pod de test est supprimé après la commande. Le nom complet `mailpit.default.svc.cluster.local` est utilisable depuis les autres namespaces, tandis que le nom court `mailpit` fonctionne usuellement dans le namespace `default` du Pod appelant.
 
-#### a. Pod éphémère
+> **Pour aller plus loin :** `kubectl debug <nom-du-pod> -it --image=busybox:1.36 -- sh` ajoute un conteneur de diagnostic éphémère au Pod existant. Réservez cette variante à un exercice de débogage : ce conteneur n’est pas effacé de l’objet Pod par la seule commande `exit`. Voir la [documentation de `kubectl debug`](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_debug/).
+
+### 4. Changer le nombre de réplicas
+
+Passez à deux Pods :
 
 ```bash
-kubectl debug mailpit-b69794cd7-9zdpj -it --image=alpine
-getent hosts mailpit
-exit
-```
-
-#### b. Pod temporaire
-
-```bash
-kubectl run -it --rm test-mailpit --image=alpine sh
-nslookup mailpit
-exit
-```
-
----
-
-### 5. Résilience et scalabilité
-
-#### a. Monter en charge
-
-```bash
-kubectl scale deployment mailpit --replicas=2
-```
-
-Vérification :
-
-```bash
+kubectl scale deployment/mailpit --replicas=2
 kubectl get deployment mailpit
 kubectl get pods -l app=mailpit
 ```
 
-#### b. Arrêt temporaire
+Exemple :
 
-```bash
-kubectl scale deployment mailpit --replicas=0
+```text
+deployment.apps/mailpit scaled
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+mailpit   2/2     2            2           6m
 ```
 
-Redémarrage :
+Le Service peut distribuer de nouvelles connexions entre les Pods disponibles. **Attention : Mailpit conserve ici les messages dans chaque instance séparément.** Avec deux réplicas sans stockage et configuration partagés, une interface web peut afficher des messages différents selon le Pod atteint : cette manipulation illustre la mécanique de réplication, pas une configuration Mailpit hautement disponible.
+
+Pour arrêter temporairement les Pods tout en conservant le Deployment et le Service :
 
 ```bash
-kubectl scale deployment mailpit --replicas=1
+kubectl scale deployment/mailpit --replicas=0
+kubectl get pods -l app=mailpit
 ```
 
----
+Après la phase `Terminating`, aucun Pod ne répondra au Service. Relancez ensuite l’application :
 
-### Compatibilité selon l’environnement
+```bash
+kubectl scale deployment/mailpit --replicas=1
+kubectl rollout status deployment/mailpit
+```
 
-| Système                              | Commandes                      | Particularités                                             |
-| ------------------------------------ | ------------------------------ | ---------------------------------------------------------- |
-| **Linux / macOS**                    | Identiques                     | DNS du cluster géré par CoreDNS.                           |
-| **Windows (Docker Desktop)**         | Identiques (PowerShell / WSL2) | Doivent être exécutées dans la même instance que Minikube. |
-| **Images légères (Alpine, BusyBox)** | `nslookup`, `getent hosts`     | En cas d’absence, lancer un pod temporaire.                |
+### Questions de synthèse
+
+1. Quel objet demande un nombre de réplicas et quel objet crée concrètement les Pods ?
+2. Pourquoi `kubectl port-forward deployment/mailpit 8025:8025` fonctionne-t-il alors que `Port: <none>` figure dans la description ?
+3. Quelle différence existe entre l’adresse `127.0.0.1:8025` du port forwarding et le nom DNS `mailpit.default.svc.cluster.local` ?
+4. Que deviennent le Deployment, le Service et les Pods après `--replicas=0` ?
+5. Pourquoi deux réplicas Mailpit peuvent-ils produire des boîtes de réception différentes dans cette configuration ?
