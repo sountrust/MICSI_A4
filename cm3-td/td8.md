@@ -385,6 +385,10 @@ En 3 à 4 lignes, expliquer pourquoi Prometheus est bien adapté aux environneme
 
 Schéma d’architecture extrait du site prometheus.io.
 
+![Architecture de Prometheus : collecte des métriques, stockage TSDB, alertes via Alertmanager et visualisation avec Grafana.](../assets/td8/prometheus-architecture.png)
+
+Prometheus collecte les métriques des exporteurs et les stocke dans sa base temporelle. Grafana interroge ces données pour les afficher ; Alertmanager reçoit les alertes et achemine les notifications.
+
 #### b. Le moteur Prometheus
 
 Le serveur Prometheus prend en charge plusieurs opérations :
@@ -671,6 +675,30 @@ Affichez la définition complète :
 kubectl -n monitoring get servicemonitor prometheus-kube-prometheus-operator -o yaml
 ```
 
+Cet objet décrit la collecte des métriques de l’opérateur. Les noms, labels et ports dépendent de la version du chart : utiliser le nom relevé dans la liste si celui de l’exemple n’existe pas.
+
+Extrait illustratif de la structure d’un ServiceMonitor :
+
+```yaml
+spec:
+  endpoints:
+    - path: /metrics
+      port: http
+  namespaceSelector:
+    matchNames:
+      - monitoring
+  selector:
+    matchLabels:
+      app: kube-prometheus-stack-operator
+      release: prometheus
+```
+
+- `endpoints` indique les chemins et les **noms de ports du Service** à collecter ; consulter le Service sélectionné pour connaître les numéros de ports.
+- `namespaceSelector` indique les namespaces où rechercher les Services.
+- `selector.matchLabels` sélectionne les Services à partir de leurs labels.
+
+Comparer cette structure avec l’objet réellement déployé ; cet extrait n’est pas un manifeste à appliquer.
+
 **Rendu attendu :**
 Extrait YAML (capture) contenant :
 
@@ -678,7 +706,7 @@ Extrait YAML (capture) contenant :
 - `namespaceSelector`
 - `matchLabels`
 
-* commentaire expliquant leur rôle en 3–5 lignes.
+Ajouter un commentaire expliquant leur rôle en 3–5 lignes.
 
 ### e. Consultation des points de collecte dans Prometheus
 
@@ -705,12 +733,45 @@ kubectl -n monitoring get prometheusrule
 kubectl -n monitoring get PrometheusRule prometheus-kube-prometheus-prometheus -o yaml
 ```
 
+Si ce nom n’apparaît pas dans la liste précédente, choisir une ressource présente. Exemple de structure d’une règle :
+
+```yaml
+spec:
+  groups:
+    - name: prometheus.rules
+      rules:
+        - alert: PrometheusConfigReloadFailed
+          annotations:
+            description: Le rechargement de la configuration Prometheus a échoué.
+            summary: Échec de rechargement de Prometheus
+          expr: prometheus_config_last_reload_successful == 0
+          for: 10m
+          labels:
+            severity: warning
+```
+
+`alert` nomme l’alerte, `expr` définit sa condition et `for` impose que cette condition reste vraie pendant la durée indiquée avant son déclenchement. Les `labels` permettent notamment le routage ; les `annotations` décrivent le problème.
+
 **Rendu attendu :**
 Extrait YAML montrant `alert`, `expr`, `for`, `labels` + commentaire expliquant comment l’alerte se déclenche.
 
 ### c. Définition d’alertes (avec record)
 
-Certaines requêtes complexes sont d’abord enregistrées via un champ `record`.
+Certaines requêtes complexes sont pré-calculées par une **règle d’enregistrement**, définie avec `record`. Elle produit une nouvelle série temporelle réutilisable dans une requête ou une alerte ; elle ne déclenche pas elle-même une notification.
+
+Exemple du support pour calculer le nombre de CPU par nœud :
+
+```yaml
+- expr: |-
+    count by (node) (sum by (node, cpu) (
+      node_cpu_seconds_total{job="node-exporter"}
+    * on (namespace, pod) group_left(node)
+      node_namespace_pod:kube_pod_info:
+    ))
+  record: node:node_num_cpu:sum
+```
+
+Le champ `record` donne le nom de la série résultante, interrogée plus haut dans l’interface Prometheus. Cet exemple dépend des métriques et règles fournies par le chart : vérifier leur présence dans l’installation utilisée.
 
 ---
 
@@ -742,15 +803,19 @@ Capture de la liste montrant au moins une alerte critique + commentaire indiquan
 
 ### d. Désactivation des alertes scheduler / manager (clusters managés)
 
-Modifier :
+Dans `prometheus-operator.yaml`, modifier les valeurs suivantes à la racine du fichier :
 
-- `kubeControllerManager.enabled=false`
-- `kubeScheduler.enabled=false`
+```yaml
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+```
 
 Puis appliquer :
 
 ```
-helm upgrade --install prometheus stable/prometheus-operator \
+helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   -f prometheus-operator.yaml
 ```
@@ -797,7 +862,7 @@ curl -X POST -H 'Content-type: application/json' \
 Appliquer :
 
 ```
-helm upgrade --install prometheus stable/prometheus-operator \
+helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   -f prometheus-operator.yaml
 ```
@@ -833,6 +898,32 @@ Pour les consulter :
 kubectl -n monitoring get configmap -l grafana_datasource=1
 ```
 
+Afficher leur contenu pour identifier la datasource et son URL :
+
+```bash
+kubectl -n monitoring get configmap -l grafana_datasource=1 -o yaml
+```
+
+Exemple de structure (le nom du Service dans l’URL dépend de l’installation) :
+
+```yaml
+data:
+  datasource.yaml: |-
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-kube-prometheus-prometheus.monitoring:9090/
+        access: proxy
+        isDefault: true
+```
+
+- `url` désigne le Service interne par lequel Grafana joint Prometheus.
+- `access: proxy` indique que Grafana effectue les requêtes vers cette source.
+- `isDefault: true` définit la source utilisée par défaut.
+
+Relever les valeurs réellement présentes dans votre ConfigMap.
+
 **Rendu attendu :**
 Capture du ConfigMap + commentaire expliquant :
 
@@ -859,10 +950,14 @@ Capture de la liste des dashboards + commentaire sur l’intérêt d’avoir ces
 
 Accès via l’URL configurée lors du déploiement.
 
+Avec le port-forward proposé plus haut, ouvrir `http://localhost:3000` en gardant le terminal actif.
+
 Identifiants par défaut :
 
 - `admin`
 - `prom-operator`
+
+Le mot de passe peut être défini via la valeur Helm `grafana.adminPassword`. Parcourir les tableaux de bord fournis : CPU par nœud ou namespace, pods et volumes.
 
 **Rendu attendu :**
 Capture d’un tableau de bord fourni + commentaire expliquant ce que montre le graphique.
