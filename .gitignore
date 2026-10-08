@@ -45,8 +45,8 @@ out/pdfs/
 *.pdf
 
 # Optional: if you generate HTML from Markdown
-html/
-*.html
+#html/
+#*.html
 
 # Logs / temp
 *.log
